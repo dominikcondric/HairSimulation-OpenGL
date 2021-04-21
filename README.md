@@ -6,7 +6,7 @@ git clone --recurse-submodules https://github.com/dominikcondric/HairSimulation-
 ```
 
 ## About the project
-Project contains a hair simulation written in C++/GLSL with minimal dependencies as part of an undergraduate thesis in Computer Graphics. Algorithm behind the hair simulation is called Follow The Leader, and it is closely related to the idea of simulating pysics using Position Based Dynamics. All of the hair computation is done in GLSL compute shader to benefit from paralellism while working on individual strands.
+Project contains a hair simulation written in C++/GLSL with minimal dependencies as part of an undergraduate thesis in Computer Graphics. Algorithm behind the hair simulation is called Follow The Leader, and it is closely related to the idea of simulating physics using Position Based Dynamics. All of the hair computation is done in GLSL compute shader to benefit from paralellism while working on individual strands.
 
 ## Controls
 **Enter** - starts/stops simulation  
