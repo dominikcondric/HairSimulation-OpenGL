@@ -1,6 +1,6 @@
 #pragma once
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm\ext\matrix_float4x4.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
 
 class Camera {
 public:

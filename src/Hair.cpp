@@ -101,12 +101,10 @@ void Hair::setGravity(float strength)
 	settingsChanged = true;
 }
 
-void Hair::incrementStrandCount()
+void Hair::increaseStrandCount()
 {
-	if (strandCount >= maximumStrandCount)
-		return;
+	strandCount = glm::clamp<uint32_t>(strandCount + 10, 0, maximumStrandCount);
 
-	strandCount++;
 	GLuint localWorkGroupCountX = computeShader.getLocalWorkGroupsCount().x;
 	globalWorkGroupCount = strandCount / localWorkGroupCountX;
 	if (strandCount % localWorkGroupCountX != 0)
@@ -116,12 +114,10 @@ void Hair::incrementStrandCount()
 	std::cout << strandCount << '\n';
 }
 
-void Hair::decrementStrandCount()
+void Hair::decreaseStrandCount()
 {
-	if (strandCount == 0) 
-		return;
+	strandCount = glm::clamp<uint32_t>(strandCount - 10, 0, maximumStrandCount);
 
-	--strandCount;
 	GLuint localWorkGroupCountX = computeShader.getLocalWorkGroupsCount().x;
 	globalWorkGroupCount = strandCount / localWorkGroupCountX;
 	if (strandCount % localWorkGroupCountX != 0)

@@ -17,8 +17,8 @@ public:
 	void applyPhysics(float deltaTime, float runningTime);
 	void constructModel(HairType type);
 	void setGravity(float strength);
-	void incrementStrandCount();
-	void decrementStrandCount();
+	void increaseStrandCount();
+	void decreaseStrandCount();
 
 	/*
 	* Sets wind direction and strength. 

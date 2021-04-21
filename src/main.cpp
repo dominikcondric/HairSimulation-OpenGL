@@ -97,15 +97,9 @@ int main()
 			cam.rotateCamera(window->getCursorOffset());
 
 		if (window->isKeyPressed(GLFW_KEY_I) && !iPressed)
-		{
-			hair->incrementStrandCount();
-			iPressed = true;
-		}
+			hair->increaseStrandCount();
 		else if (window->isKeyPressed(GLFW_KEY_O) && !oPressed)
-		{
-			hair->decrementStrandCount();
-			oPressed = true;
-		}
+			hair->decreaseStrandCount();
 
 		if (window->isKeyPressed(GLFW_KEY_ENTER) && !enterPressed)
 			doPhysics = !doPhysics;
