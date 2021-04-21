@@ -1,6 +1,7 @@
 #pragma once
 #include "Entity.h"
 #include "ComputeShader.h"
+#include <vector>
 
 class Hair : public Entity {
 public:

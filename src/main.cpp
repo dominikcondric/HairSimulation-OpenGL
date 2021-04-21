@@ -33,7 +33,7 @@ int main()
 	Texture skyboxCubemap("cubemap.jpg", GL_TEXTURE_CUBE_MAP, false);
 
 	// Basic hair
-	Unique<Hair> hair = std::make_unique<Hair>(40, 20);
+	Unique<Hair> hair = std::make_unique<Hair>(500, 20);
 	hair->color = glm::vec3(0.22f, 0.12f, 0.02f);
 	hair->scale(glm::vec3(1.f, 5.f, 1.f));
 
@@ -95,13 +95,12 @@ int main()
 		if (window->isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT))
 			cam.rotateCamera(window->getCursorOffset());
 
-		float deltaTime = window->getTime().deltaTime;
 		if (window->isKeyPressed(GLFW_KEY_I) && !iPressed)
 		{
 			hair->incrementStrandCount();
 			iPressed = true;
 		}
-		else if (window->isKeyPressed(GLFW_KEY_O))
+		else if (window->isKeyPressed(GLFW_KEY_O) && !oPressed)
 		{
 			hair->decrementStrandCount();
 			oPressed = true;

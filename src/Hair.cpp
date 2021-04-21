@@ -1,5 +1,4 @@
 #include "Hair.h"
-#include <vector>
 #include <iostream>
 #include <glm/gtc/random.hpp>
 
@@ -34,10 +33,6 @@ void Hair::constructModel(HairType type)
 	const float segmentLength = 1.f / (particlesPerStrand - 1);	
 	std::vector<float> data;
 	data.reserve(maximumStrandCount * 3);
-	const float hairOffset = 0.005f;
-	const float hairDistanceQuarter = (uint32_t)glm::sqrt(strandCount) * (hairOffset + 0.1f) / 4;
-	/*const uint32_t xBlockSize = glm::floor(glm::sqrt(strandCount));
-	const uint32_t yBlockSize = uint32_t(strandCount / xBlockSize) + (strandCount % xBlockSize);*/
 
 	switch (type)
 	{
