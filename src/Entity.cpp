@@ -23,11 +23,8 @@ void Entity::rotate(float angle, const glm::vec3& axis)
 
 void Entity::scale(const glm::vec3& scale)
 {
-	glm::mat4 m = transformMatrix;
 	scaleVector = scale;
 	transformMatrix = glm::scale(glm::translate(glm::mat4(1.f), translationVector) * glm::mat4_cast(rotationQuat), scaleVector);
-	if (transformMatrix == m)
-		std::cout << "What??" << std::endl;
 }
 
 void Entity::translate(const glm::vec3& translation)

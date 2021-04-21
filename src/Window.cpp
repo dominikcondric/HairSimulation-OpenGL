@@ -57,6 +57,9 @@ void Window::onUpdate()
 	t.deltaTime = currentTime - t.runningTime;
 	t.runningTime = currentTime;
 	t.frameRate = 1.f / t.deltaTime;
+
+	if (uint32_t(t.runningTime * 1000) % 1000 == 0)
+		std::cout << "Frame rate: " << t.frameRate << std::endl;
 }
 
 bool Window::isKeyPressed(int key) const

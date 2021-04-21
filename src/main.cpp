@@ -50,11 +50,12 @@ int main()
 	lightingShader.setFloat("light.linear", 0.024f);
 	lightingShader.setFloat("light.quadratic", 0.0021f);
 
-	uint32_t counter = 0;
 	bool doPhysics = false;
 	bool iPressed = false;
 	bool oPressed = false;
+	bool enterPressed = false;
 	glViewport(0, 0, window->getWindowSize().x, window->getWindowSize().y);
+
 	do {
 		glDisable(GL_CULL_FACE);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -106,10 +107,8 @@ int main()
 			oPressed = true;
 		}
 
-		if (window->isKeyPressed(GLFW_KEY_1))
-			doPhysics = true;
-		if (window->isKeyPressed(GLFW_KEY_2))
-			doPhysics = false;
+		if (window->isKeyPressed(GLFW_KEY_ENTER) && !enterPressed)
+			doPhysics = !doPhysics;
 
 		if (window->isResized())
 		{
@@ -120,10 +119,8 @@ int main()
 
 		iPressed = window->isKeyPressed(GLFW_KEY_I);
 		oPressed = window->isKeyPressed(GLFW_KEY_O);
-		window->onUpdate();
-		if (counter % 800 == 0)
-			std::cout << "Frame rate: " << 1.f / window->getTime().deltaTime << '\n';
+		enterPressed = window->isKeyPressed(GLFW_KEY_ENTER);
 
-		counter++;
+		window->onUpdate();
 	} while (!window->shouldClose());
 }
