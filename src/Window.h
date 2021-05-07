@@ -4,6 +4,7 @@
 #include <glm/vec3.hpp>
 #include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
+#include <unordered_map>
 
 struct Time {
 	float deltaTime = 0.f;
@@ -21,6 +22,7 @@ public:
 	const glm::vec2 getCursorPositions() const;
 	glm::ivec2 getWindowSize() const;
 	bool isKeyPressed(int key) const;
+	bool isKeyTapped(int key) const;
 	bool isMouseButtonPressed(int key) const;
 	bool shouldClose() const { return glfwWindowShouldClose(windowHandle); }
 	const Time& getTime() const { return t; }
@@ -33,4 +35,5 @@ private:
 	double lastX{ 0.f }, lastY{ 0.f };
 	static void windowResizeCallback(GLFWwindow* window, int w, int h);
 	bool resized = false;
+	mutable std::unordered_map<int, bool> keyStates;
 };

@@ -1,4 +1,5 @@
 #include "ComputeShader.h"
+#include <iostream>
 
 ComputeShader::ComputeShader(const std::string& shaderFile)
 {
@@ -16,7 +17,9 @@ void ComputeShader::dispatch() const
 glm::ivec3 ComputeShader::getMaxLocalWorkGroups() const
 {
 	glm::ivec3 values;
-	glGetProgramiv(programID, GL_MAX_COMPUTE_WORK_GROUP_SIZE, &values.x);
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &values.x);
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &values.y);
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &values.z);
 	return values;
 }
 
@@ -30,7 +33,9 @@ glm::ivec3 ComputeShader::getLocalWorkGroupsCount() const
 glm::ivec3 ComputeShader::getMaxGlobalWorkGroups() const
 {
 	glm::ivec3 values;
-	glGetProgramiv(programID, GL_MAX_COMPUTE_WORK_GROUP_COUNT, &values.x);
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &values.x);
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &values.y);
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &values.z);
 	return values;
 }
 

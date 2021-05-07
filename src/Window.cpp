@@ -30,6 +30,13 @@ Window::Window(uint32_t winWidth, uint32_t winHeight, const char* winName, int s
 	}
 
 	this->windowHandle = window;
+
+	keyStates.insert({ GLFW_KEY_ENTER, false });
+	keyStates.insert({ GLFW_KEY_I, false });
+	keyStates.insert({ GLFW_KEY_O, false });
+	keyStates.insert({ GLFW_KEY_RIGHT_SHIFT, false });
+	keyStates.insert({ GLFW_KEY_RIGHT_CONTROL, false });
+
 	onUpdate();
 }
 
@@ -47,6 +54,11 @@ void Window::onUpdate()
 	lastY = cursorY;
 	glfwGetCursorPos(windowHandle, &cursorX, &cursorY);
 
+	for (auto& pair : keyStates)
+	{
+		pair.second = isKeyPressed(pair.first);
+	}
+
 	// Updating keys
 	glfwPollEvents();
 	glfwSwapBuffers(windowHandle);
@@ -60,11 +72,26 @@ void Window::onUpdate()
 
 	if (uint32_t(t.runningTime * 1000) % 1000 == 0)
 		std::cout << "Frame rate: " << t.frameRate << std::endl;
+
 }
 
 bool Window::isKeyPressed(int key) const
 {
 	return bool(glfwGetKey(windowHandle, key));
+}
+
+bool Window::isKeyTapped(int key) const
+{
+	if (keyStates.find(key) != keyStates.end())
+	{
+		return (keyStates[key] == false && isKeyPressed(key) == true);
+	}
+	else
+	{
+		std::cout << "Key is not added to the map" << std::endl;
+	}
+
+	return false;
 }
 
 bool Window::isMouseButtonPressed(int key) const

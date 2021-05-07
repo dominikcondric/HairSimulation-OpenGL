@@ -23,20 +23,29 @@ public:
 	/*
 	* Sets wind direction and strength. 
 	* If direction set to { 0.f, 0.f, 0.f } wind is dynamic with specified strength
+	* Wind strength is clamped in range [0, 1]
 	*/
 	void setWind(const glm::vec3& direction, float strength);
+	
+	/*
+	* Sets friction factor clamped in range [0, 1] 
+	*/
+	void setFrictionFactor(float friction);
+	float getFrictionFactor() const { return frictionFactor; }
 
 private:
 	GLuint velocityArrayBuffer = GL_NONE;		// Shader storage buffer object for velocities
+	GLuint volumeDensities = GL_NONE;
+	GLuint volumeVelocities = GL_NONE;
 
 	std::vector<GLint> firsts;
 	std::vector<GLint> lasts;
 	uint32_t strandCount;
-	ComputeShader computeShader;						
-	uint32_t globalWorkGroupCount = 0;
+	ComputeShader computeShader;
 	GLuint particlesPerStrand = 0;
-	glm::vec4 wind{ 0.f, 0.f, 0.f, 0.1f };
+	glm::vec4 wind{ 0.f, 0.f, 0.f, 0.7f };
 	float gravity = -9.81f;
 	bool settingsChanged = false;
-	const uint32_t maximumStrandCount = 3e5;
+	const int maximumStrandCount = 3e4;
+	float frictionFactor = 0.1f;
 };

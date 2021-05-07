@@ -20,7 +20,7 @@ int main()
 	glClearColor(0.1f, 0.1f, 0.1f, 1.f);
 
 	PerspectiveCamera cam;
-	cam.setPosition(glm::vec3(0.f, 5.f, 5.f));
+	cam.setPosition(glm::vec3(0.f, 1.f, 4.f));
 
 	// Light source model
 	Unique<Sphere> lightSphere = std::make_unique<Sphere>(10, 5, 1.f);
@@ -33,9 +33,9 @@ int main()
 	Texture skyboxCubemap("cubemap.jpg", GL_TEXTURE_CUBE_MAP, false);
 
 	// Basic hair
-	Unique<Hair> hair = std::make_unique<Hair>(500, 20);
+	Unique<Hair> hair = std::make_unique<Hair>(2000, 20);
 	hair->color = glm::vec3(0.22f, 0.12f, 0.02f);
-	hair->scale(glm::vec3(1.f, 5.f, 1.f));
+	hair->scale(glm::vec3(1.f, 4.f, 1.f));
 
 	// Shaders setup
 	DrawingShader basicShader("BasicVertexShader.glsl", "BasicFragmentShader.glsl");
@@ -51,9 +51,6 @@ int main()
 	lightingShader.setFloat("light.quadratic", 0.0021f);
 
 	bool doPhysics = false;
-	bool iPressed = false;
-	bool oPressed = false;
-	bool enterPressed = false;
 	glViewport(0, 0, window->getWindowSize().x, window->getWindowSize().y);
 
 	do {
@@ -96,12 +93,17 @@ int main()
 		if (window->isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT))
 			cam.rotateCamera(window->getCursorOffset());
 
-		if (window->isKeyPressed(GLFW_KEY_I) && !iPressed)
+		if (window->isKeyTapped(GLFW_KEY_I))
 			hair->increaseStrandCount();
-		else if (window->isKeyPressed(GLFW_KEY_O) && !oPressed)
+		else if (window->isKeyTapped(GLFW_KEY_O))
 			hair->decreaseStrandCount();
 
-		if (window->isKeyPressed(GLFW_KEY_ENTER) && !enterPressed)
+		if (doPhysics && window->isKeyTapped(GLFW_KEY_RIGHT_SHIFT))
+			hair->setFrictionFactor(hair->getFrictionFactor() + 0.05f);
+		else if (doPhysics && window->isKeyTapped(GLFW_KEY_RIGHT_CONTROL))
+			hair->setFrictionFactor(hair->getFrictionFactor() - 0.05f);
+		
+		if (window->isKeyTapped(GLFW_KEY_ENTER))
 			doPhysics = !doPhysics;
 
 		if (window->isResized())
@@ -110,10 +112,6 @@ int main()
 			cam.setProjectionAspectRatio((float)windowSize.x / windowSize.y);
 			glViewport(0, 0, windowSize.x, windowSize.y);
 		}
-
-		iPressed = window->isKeyPressed(GLFW_KEY_I);
-		oPressed = window->isKeyPressed(GLFW_KEY_O);
-		enterPressed = window->isKeyPressed(GLFW_KEY_ENTER);
 
 		window->onUpdate();
 	} while (!window->shouldClose());
