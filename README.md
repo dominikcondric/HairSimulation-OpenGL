@@ -18,4 +18,6 @@ Project contains a hair simulation written in C++/GLSL with minimal dependencies
 **Spacebar** - moves camera in positive **y** direction of a scene camera   
 **Left shift** - moves camera in positive **y** direction of a scene camera  
 **I** - increment strand count  
-**O** - decrement strand count
+**O** - decrement strand count  
+**Right shift** - increase hair friction  
+**Right control** - decrease hair friction
