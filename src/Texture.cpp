@@ -4,7 +4,7 @@
 #include <iostream>
 #include "PathConfig.h"
 
-#define CHAR_OFFSET 48
+#define CHAR_OFFSET 48U
 
 Texture::Texture(const std::string& texName, GLuint texType, const bool gammaCorrection) : textureType(texType)
 {
@@ -19,8 +19,6 @@ Texture::Texture(const std::string& texName, GLuint texType, const bool gammaCor
 		generateCubeMap(texName, gammaCorrection);
 		break;
 	}
-
-	name = texName;
 }
 
 Texture::~Texture()
@@ -43,7 +41,7 @@ void Texture::generateCubeMap(const std::string& name, const bool gammaCorrectio
 	for (int i = 0; i < 6; i++)
 	{
 		std::string texName = TEXTURE_FOLDER + name;
-		texName.insert(texName.begin() + texName.find('.'), i + CHAR_OFFSET);
+		texName.insert(texName.begin() + texName.find('.'), char(i + CHAR_OFFSET));
 		data = stbi_load(texName.c_str(), &width, &height, &nrChannels, 0);
 		if (nrChannels == 4)
 		{

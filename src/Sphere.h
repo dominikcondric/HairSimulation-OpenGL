@@ -9,8 +9,8 @@ public:
 	float getRadius() const { return radius * scaleVector.x; };
 
 private:
-	void constructModel(size_t sectorCount, size_t stackCount);
-	GLuint ebo = 0.f;
+	void constructModel(uint32_t sectorCount, uint32_t stackCount);
+	GLuint ebo = 0U;
 	float radius = 1.f;
 	GLuint indicesCount = 0;
 };

@@ -22,7 +22,7 @@ void Sphere::draw() const
 	glBindVertexArray(0);
 }
 
-void Sphere::constructModel(size_t sectorCount, size_t stackCount)
+void Sphere::constructModel(uint32_t sectorCount, uint32_t stackCount)
 {
 	const float len = 1.f / radius;
 	std::vector<glm::vec3> vertices;
@@ -33,12 +33,12 @@ void Sphere::constructModel(size_t sectorCount, size_t stackCount)
 	float sectorAngle, stackAngle;
 	float xy;
 	glm::vec3 vertex;
-	for (size_t i = 0; i <= stackCount; ++i)
+	for (uint32_t i = 0; i <= stackCount; ++i)
 	{
 		stackAngle = pi / 2 - i * stackStep;
 		xy = radius * cos(stackAngle);
 		vertex.z = radius * sin(stackAngle);
-		for (size_t j = 0; j <= sectorCount; ++j)
+		for (uint32_t j = 0; j <= sectorCount; ++j)
 		{
 			sectorAngle = j * sectorStep;
 			vertex.x = xy * cos(sectorAngle);
@@ -54,11 +54,11 @@ void Sphere::constructModel(size_t sectorCount, size_t stackCount)
 	data.reserve(8 * vertexCount);
 
 	int k1, k2;
-	for (size_t i = 0; i < stackCount; ++i)
+	for (uint32_t i = 0; i < stackCount; ++i)
 	{
 		k1 = i * (sectorCount + 1);
 		k2 = k1 + sectorCount + 1;
-		for (size_t j = 0; j < sectorCount; ++j, ++k1, ++k2)
+		for (uint32_t j = 0; j < sectorCount; ++j, ++k1, ++k2)
 		{
 			if (i != 0)
 			{
@@ -77,9 +77,9 @@ void Sphere::constructModel(size_t sectorCount, size_t stackCount)
 	}
 
 	int k = 0;
-	for (size_t i = 0; i <= stackCount; ++i)
+	for (uint32_t i = 0; i <= stackCount; ++i)
 	{
-		for (size_t j = 0; j <= sectorCount; ++j)
+		for (uint32_t j = 0; j <= sectorCount; ++j)
 		{
 			data.push_back(vertices[k].x);
 			data.push_back(vertices[k].y);

@@ -60,6 +60,7 @@ void Shader::compileAndAttachShader(const std::string& shaderFileName, GLuint& s
 		shaderCode = ShaderStream.str();
 	}
 	catch (std::ifstream::failure& e) {
+		std::cout << e.what() << std::endl;
 		std::cout << "Error: File not successfully read/found!" << std::endl;
 	}
 

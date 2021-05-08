@@ -17,10 +17,11 @@ Hair::Hair(uint32_t _strandCount, uint32_t strandSegmentsCount, HairType type) :
 	computeShader.setUint("hairData.strandCount", strandCount);
 	computeShader.setUint("hairData.particlesPerStrand", particlesPerStrand);
 	computeShader.setFloat("hairData.particleMass", 0.1f);
-	computeShader.setFloat("hairData.segmentLength", 1.f / strandSegmentsCount);
+	computeShader.setFloat("hairData.segmentLength", 4.f / strandSegmentsCount);
 	computeShader.setFloat("force.gravity", gravity);
 	computeShader.setVec4("force.wind", wind);
 	computeShader.setFloat("frictionCoefficient", frictionFactor);
+	computeShader.setFloat("headRadius", 1.f);
 }
 
 Hair::~Hair()
@@ -32,21 +33,27 @@ Hair::~Hair()
 
 void Hair::constructModel(HairType type)
 {
-	const float segmentLength = 1.f / (particlesPerStrand - 1);
+	const float segmentLength = 4.f / (particlesPerStrand - 1);
 	std::vector<float> data;
 	data.reserve(maximumStrandCount * particlesPerStrand * 3);
 
 	switch (type)
 	{
 	case Hair::HairType::Straight:
-		for (uint32_t i = 0; i < maximumStrandCount; ++i)
+		for (int i = 0; i < maximumStrandCount; ++i)
 		{
-			const glm::vec2 randomDiskCoordinates = glm::diskRand(0.5f);
+			glm::vec3 randCoords = glm::sphericalRand(1.f);
+			while (randCoords.z > 0.1f || randCoords.y < -0.3f)
+			{
+				randCoords = glm::sphericalRand(1.0f);
+			}
+
 			for (uint32_t j = 0; j < particlesPerStrand; ++j)
 			{
-				data.push_back(randomDiskCoordinates.x);
-				data.push_back(0.f - segmentLength * j);
-				data.push_back(randomDiskCoordinates.y);
+				const glm::vec3 temp = randCoords;
+				data.push_back(temp.x);
+				data.push_back(temp.y);
+				data.push_back(temp.z - j * segmentLength);
 			}
 		}
 		break;
@@ -58,7 +65,7 @@ void Hair::constructModel(HairType type)
 
 	firsts.reserve(maximumStrandCount);
 	lasts.reserve(maximumStrandCount);
-	for (uint32_t i = 0; i < maximumStrandCount - 1; ++i)
+	for (int i = 0; i < maximumStrandCount - 1; ++i)
 	{
 		firsts.push_back(particlesPerStrand * i);
 		lasts.push_back(particlesPerStrand);
@@ -84,13 +91,13 @@ void Hair::constructModel(HairType type)
 	glBufferData(GL_SHADER_STORAGE_BUFFER, data.size() * sizeof(float), data.data(), GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, velocityArrayBuffer);
 
-	float voxelGridSize = 5 * 5 * 5 * sizeof(float); // 5x5x5 volume, 3 floats per vertex
+	GLsizeiptr voxelGridSize = 10 * 10 * 10 * sizeof(float); // 5x5x5 volume, 3 floats per vertex
 	glGenBuffers(1, &volumeDensities);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, volumeDensities);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, voxelGridSize, nullptr, GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, volumeDensities);
 
-	voxelGridSize *= 3.f;
+	voxelGridSize *= 3;
 	glGenBuffers(1, &volumeVelocities);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, volumeVelocities);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, voxelGridSize, nullptr, GL_DYNAMIC_DRAW);

@@ -15,11 +15,11 @@ layout (std430, binding = 1) buffer HairVelocity {
 };
 
 layout (std430, binding = 2) buffer volumeDensity {
-	float volumeDensities[5][5][5];
+	float volumeDensities[10][10][10];
 };
 
 layout (std430, binding = 3) buffer volumeVelocity {
-	float volumeVelocities[5][5][5][3];
+	float volumeVelocities[10][10][10][3];
 };
 
 struct HairData {
@@ -34,6 +34,7 @@ struct Force {
 	float gravity;
 };
 
+uniform float headRadius;
 uniform uint state;
 uniform Force force;
 uniform HairData hairData;
@@ -86,13 +87,13 @@ vec3 updateVelocity(in vec3 oldPosition, in vec3 newPosition)
 // Very useful article: https://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/interpolation/introduction
 vec3 interpolateVelocity(in vec3 particlePosition)
 {
-	particlePosition += 2;
+	particlePosition += 5;
 	ivec3 flooredCoords = ivec3(floor(particlePosition));
 
 	// Upper limit of the regular voxel grid, flooring to 3
-	if (flooredCoords.x >= 4) flooredCoords.x = 3;
-	if (flooredCoords.y >= 4) flooredCoords.y = 3;
-	if (flooredCoords.z >= 4) flooredCoords.z = 3;
+	if (flooredCoords.x >= 9) flooredCoords.x = 8;
+	if (flooredCoords.y >= 9) flooredCoords.y = 8;
+	if (flooredCoords.z >= 9) flooredCoords.z = 8;
 
 	vec3 voxelVertexVelocities[2][2][2];
 	for (uint i = 0; i < 2; ++i)
@@ -147,12 +148,12 @@ void fillVolumes(in vec3 particlePositions[MAX_VERTICES_PER_STRAND], in vec3 par
 	for (uint index = 0; index < hairData.particlesPerStrand; ++index)
 	{
 		// Adding 2 to linearly map [-2,2] range to [0,4] range
-		const vec3 particlePosition = particlePositions[index] + 2.0;
+		const vec3 particlePosition = particlePositions[index] + 5.0;
 		const vec3 particleVelocity = particleVelocities[index];
 		ivec3 flooredCoords = ivec3(floor(particlePosition));
-		if (flooredCoords.x == 4) flooredCoords.x = 3;
-		if (flooredCoords.y == 4) flooredCoords.y = 3;
-		if (flooredCoords.z == 4) flooredCoords.z = 3;
+		if (flooredCoords.x == 9) flooredCoords.x = 8;
+		if (flooredCoords.y == 9) flooredCoords.y = 8;
+		if (flooredCoords.z == 9) flooredCoords.z = 8;
 
 		for (uint i = 0; i < 2; ++i)
 		{
@@ -169,6 +170,11 @@ void fillVolumes(in vec3 particlePositions[MAX_VERTICES_PER_STRAND], in vec3 par
 			}
 		}
 	}
+}
+
+void resolveBodyCollision(inout vec3 particlePosition) {
+	if (length(particlePosition) < headRadius + 0.02f) 
+		particlePosition = normalize(particlePosition) * (headRadius + 0.02f);
 }
 
 void main(void)
@@ -206,6 +212,7 @@ void main(void)
 				forces += generateGravityForce();
 
 				proposedPosition = integrateExplicitEuler(forces, particlePositions[i], particleVelocities[i]);
+				resolveBodyCollision(proposedPosition);
 				proposedPosition = followTheLeader(particlePositions[i - 1], proposedPosition, positionCorrectionVector[i]);	
 				particleVelocities[i] = updateVelocity(particlePositions[i], proposedPosition);
 				particlePositions[i] = proposedPosition;

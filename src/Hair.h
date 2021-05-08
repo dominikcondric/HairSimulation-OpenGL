@@ -2,6 +2,7 @@
 #include "Entity.h"
 #include "ComputeShader.h"
 #include <vector>
+#include "Sphere.h"
 
 class Hair : public Entity {
 public:
@@ -15,7 +16,6 @@ public:
 	~Hair();
 	void draw() const override;
 	void applyPhysics(float deltaTime, float runningTime);
-	void constructModel(HairType type);
 	void setGravity(float strength);
 	void increaseStrandCount();
 	void decreaseStrandCount();
@@ -46,6 +46,7 @@ private:
 	glm::vec4 wind{ 0.f, 0.f, 0.f, 0.7f };
 	float gravity = -9.81f;
 	bool settingsChanged = false;
-	const int maximumStrandCount = 3e4;
-	float frictionFactor = 0.1f;
+	const int maximumStrandCount = 30000;
+	float frictionFactor = 0.20f;
+	void constructModel(const HairType type);
 };

@@ -20,22 +20,28 @@ int main()
 	glClearColor(0.1f, 0.1f, 0.1f, 1.f);
 
 	PerspectiveCamera cam;
-	cam.setPosition(glm::vec3(0.f, 1.f, 4.f));
+	cam.setPosition(glm::vec3(0.f, 0.f, 7.f));
+	cam.setCenter(glm::vec3(0.f, -2.f, 0.f));
 
 	// Light source model
-	Unique<Sphere> lightSphere = std::make_unique<Sphere>(10, 5, 1.f);
+	Unique<Sphere> lightSphere = std::make_unique<Sphere>(10, 5, 0.5f);
 	lightSphere->scale(glm::vec3(0.1f));
 	lightSphere->translate(glm::vec3(1.f, 2.f, 1.f));
 	lightSphere->color = glm::vec3(1.f);
+
+	// Sphere(head sim)
+	Unique<Sphere> headModel = std::make_unique<Sphere>(50, 30, 0.5f);
+	headModel->scale(glm::vec3(2.f));
+	headModel->color = glm::vec3(0.85f, 0.48f, 0.2f);
 
 	// Skybox
 	Unique<Cube> skybox = std::make_unique<Cube>(glm::vec3(-1.f), glm::vec3(1.f));
 	Texture skyboxCubemap("cubemap.jpg", GL_TEXTURE_CUBE_MAP, false);
 
 	// Basic hair
-	Unique<Hair> hair = std::make_unique<Hair>(2000, 20);
+	Unique<Hair> hair = std::make_unique<Hair>(5000, 20);
 	hair->color = glm::vec3(0.22f, 0.12f, 0.02f);
-	hair->scale(glm::vec3(1.f, 4.f, 1.f));
+	hair->scale(glm::vec3(1.f, 1.f, 1.f));
 
 	// Shaders setup
 	DrawingShader basicShader("BasicVertexShader.glsl", "BasicFragmentShader.glsl");
@@ -52,6 +58,14 @@ int main()
 
 	bool doPhysics = false;
 	glViewport(0, 0, window->getWindowSize().x, window->getWindowSize().y);
+
+	// Instead of modeling hair to look good before starting the simulation, I start with 50 iterations of FTL
+	for (uint32_t i = 0; i < 50; ++i)
+	{
+		window->onUpdate();
+		hair->applyPhysics(window->getTime().deltaTime, window->getTime().runningTime);
+	}
+	hair->setFrictionFactor(0.06f);
 
 	do {
 		glDisable(GL_CULL_FACE);
@@ -76,6 +90,14 @@ int main()
 		basicShader.setMat4("model", lightSphere->getTransformMatrix());
 		basicShader.setVec3("objectColor", lightSphere->color);
 		lightSphere->draw();
+		
+		lightingShader.use();
+		lightingShader.setMat4("projection", cam.getProjection());
+		lightingShader.setMat4("view", cam.getView());
+		lightingShader.setMat4("model", headModel->getTransformMatrix());
+		headModel->updateColorsBasedOnMaterial(lightingShader, Entity::Material::PLASTIC);
+		headModel->draw();
+
 
 		if (window->isKeyPressed(GLFW_KEY_W))
 			cam.moveCamera(Camera::Directions::FORWARD, window->getTime().deltaTime);
@@ -101,7 +123,7 @@ int main()
 		if (doPhysics && window->isKeyTapped(GLFW_KEY_RIGHT_SHIFT))
 			hair->setFrictionFactor(hair->getFrictionFactor() + 0.05f);
 		else if (doPhysics && window->isKeyTapped(GLFW_KEY_RIGHT_CONTROL))
-			hair->setFrictionFactor(hair->getFrictionFactor() - 0.05f);
+			hair->setFrictionFactor(hair->getFrictionFactor() - 0.02f);
 		
 		if (window->isKeyTapped(GLFW_KEY_ENTER))
 			doPhysics = !doPhysics;
