@@ -62,7 +62,7 @@ int main()
 		skyboxCubemap.activateAndBind(GL_TEXTURE0);
 		skybox->draw();
 
-		if (doPhysics)
+		if (doPhysics && glm::abs(window->getTime().deltaTime - window->getTime().lastDeltaTime) < 0.1f)
 			hair->applyPhysics(window->getTime().deltaTime, window->getTime().runningTime);
 
 		basicShader.use();
