@@ -91,7 +91,7 @@ void Hair::constructModel(HairType type)
 	glBufferData(GL_SHADER_STORAGE_BUFFER, data.size() * sizeof(float), data.data(), GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, velocityArrayBuffer);
 
-	GLsizeiptr voxelGridSize = 10 * 10 * 10 * sizeof(float); // 5x5x5 volume, 3 floats per vertex
+	GLsizeiptr voxelGridSize = 10 * 10 * 10 * sizeof(float); // 10x10x10 volume, 3 floats per vertex
 	glGenBuffers(1, &volumeDensities);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, volumeDensities);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, voxelGridSize, nullptr, GL_DYNAMIC_DRAW);
@@ -185,7 +185,9 @@ void Hair::applyPhysics(float deltaTime, float runningTime)
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, volumeDensities);
 	float* densities = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
-	for (int i = 0; i < 5 * 5 * 5; ++i)
+
+	int volumeSize = 10 * 10 * 10;
+	for (int i = 0; i < volumeSize; ++i)
 		densities[i] = 0.f;
 
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
@@ -193,7 +195,7 @@ void Hair::applyPhysics(float deltaTime, float runningTime)
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, volumeVelocities);
 	float* velocities = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
 
-	for (int i = 0; i < 5 * 5 * 5 * 3; ++i)
+	for (int i = 0; i < volumeSize * 3; ++i)
 		velocities[i] = 0.f;
 
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);

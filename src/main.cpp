@@ -65,7 +65,7 @@ int main()
 		window->onUpdate();
 		hair->applyPhysics(window->getTime().deltaTime, window->getTime().runningTime);
 	}
-	hair->setFrictionFactor(0.06f);
+	hair->setFrictionFactor(0.03f);
 
 	do {
 		glDisable(GL_CULL_FACE);
@@ -121,9 +121,9 @@ int main()
 			hair->decreaseStrandCount();
 
 		if (doPhysics && window->isKeyTapped(GLFW_KEY_RIGHT_SHIFT))
-			hair->setFrictionFactor(hair->getFrictionFactor() + 0.05f);
+			hair->setFrictionFactor(hair->getFrictionFactor() + 0.01f);
 		else if (doPhysics && window->isKeyTapped(GLFW_KEY_RIGHT_CONTROL))
-			hair->setFrictionFactor(hair->getFrictionFactor() - 0.02f);
+			hair->setFrictionFactor(hair->getFrictionFactor() - 0.01f);
 		
 		if (window->isKeyTapped(GLFW_KEY_ENTER))
 			doPhysics = !doPhysics;
