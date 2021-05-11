@@ -35,6 +35,9 @@ void Camera::recalculateEulerAngles()
 		yaw = glm::acos(glm::dot(glm::vec3(1.f, 0.f, 0.f), wDirection));
 	}
 
+	wDirection.x = 0;
+	wDirection.z = glm::sin(yaw) * glm::cos(pitch);
+	wDirection.y = glm::sin(pitch);
 	center = position + wDirection;
 	view = glm::lookAt(position, center, lookUp);
 	viewChanged = true;
@@ -92,9 +95,9 @@ void Camera::rotateCamera(const glm::vec2& cursorOffset)
 	wDirection.y = glm::sin(pitch);
 	wDirection.z = glm::sin(yaw) * cos(pitch);
 	wDirection = glm::normalize(wDirection);
+	center = position + wDirection;
 	uDirection = glm::cross(wDirection, lookUp);
 	vDirection = glm::cross(uDirection, wDirection);
-	center = position + wDirection;
 
 	view = glm::lookAt(position, center, lookUp);
 	viewChanged = true;

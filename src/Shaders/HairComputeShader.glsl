@@ -1,7 +1,7 @@
 #version 460 core
 #define MAX_VERTICES_PER_STRAND 50
 #define FTL 0
-#define VOLUMES 1
+#define FILL_VOLUMES 1
 #define COLLISIONS 2
 
 layout (local_size_x = 128) in;
@@ -15,11 +15,11 @@ layout (std430, binding = 1) buffer HairVelocity {
 };
 
 layout (std430, binding = 2) buffer volumeDensity {
-	float volumeDensities[10][10][10];
+	int volumeDensities[11][11][11];
 };
 
 layout (std430, binding = 3) buffer volumeVelocity {
-	float volumeVelocities[10][10][10][3];
+	int volumeVelocities[11][11][11][3];
 };
 
 struct HairData {
@@ -40,10 +40,10 @@ uniform Force force;
 uniform HairData hairData;
 uniform float deltaTime;
 uniform float runningTime;
-uniform float velocityDampingCoefficient = 1.0;
+uniform float velocityDampingCoefficient = 0.80;
 uniform float frictionCoefficient = 0.0;
 
-vec3 followTheLeader(in vec3 leaderParticlePosition, in vec3 proposedParticlePosition, inout vec3 positionCorrectionVector) 
+vec3 followTheLeader(in vec3 leaderParticlePosition, in vec3 proposedParticlePosition, out vec3 positionCorrectionVector) 
 {
 	const vec3 direction = normalize(proposedParticlePosition - leaderParticlePosition);
 	vec3 fixedPosition = leaderParticlePosition + (direction * hairData.segmentLength);
@@ -90,10 +90,10 @@ vec3 interpolateVelocity(in vec3 particlePosition)
 	particlePosition += 5;
 	ivec3 flooredCoords = ivec3(floor(particlePosition));
 
-	// Upper limit of the regular voxel grid, flooring to 3
-	if (flooredCoords.x >= 9) flooredCoords.x = 8;
-	if (flooredCoords.y >= 9) flooredCoords.y = 8;
-	if (flooredCoords.z >= 9) flooredCoords.z = 8;
+	// Upper limit of the regular voxel grid, flooring to 9
+	if (flooredCoords.x >= 10) flooredCoords.x = 9;
+	if (flooredCoords.y >= 10) flooredCoords.y = 9;
+	if (flooredCoords.z >= 10) flooredCoords.z = 9;
 
 	vec3 voxelVertexVelocities[2][2][2];
 	for (uint i = 0; i < 2; ++i)
@@ -105,7 +105,8 @@ vec3 interpolateVelocity(in vec3 particlePosition)
 				voxelVertexVelocities[i][j][k].x = volumeVelocities[flooredCoords.x + i][flooredCoords.y + j][flooredCoords.z + k][0];
 				voxelVertexVelocities[i][j][k].y = volumeVelocities[flooredCoords.x + i][flooredCoords.y + j][flooredCoords.z + k][1];
 				voxelVertexVelocities[i][j][k].z = volumeVelocities[flooredCoords.x + i][flooredCoords.y + j][flooredCoords.z + k][2];
-				voxelVertexVelocities[i][j][k] /= volumeDensities[flooredCoords.x + i][flooredCoords.y + j][flooredCoords.z + k];
+				if (volumeDensities[flooredCoords.x + i][flooredCoords.y + j][flooredCoords.z + k] != 0)
+					voxelVertexVelocities[i][j][k] /= float(volumeDensities[flooredCoords.x + i][flooredCoords.y + j][flooredCoords.z + k]);
 			}
 		}
 	}
@@ -133,51 +134,60 @@ vec3 interpolateVelocity(in vec3 particlePosition)
 
 vec3 correctFtlVelocity(in vec3 currentParticleVelocity, in vec3 nextParticleCorrectionVector) 
 {
-	const vec3 correctedVelocity = currentParticleVelocity - velocityDampingCoefficient * (nextParticleCorrectionVector / deltaTime);
+	const vec3 correctedVelocity = currentParticleVelocity + velocityDampingCoefficient * (-nextParticleCorrectionVector / deltaTime);
 	return correctedVelocity;
 }
 
-vec3 addHairFriction(in vec3 currentParticleVelocity, in vec3 particlePosition)
+void addHairFriction()
 {
-	const vec3 frictionVelocity = (1.0 - frictionCoefficient) * currentParticleVelocity + frictionCoefficient * interpolateVelocity(particlePosition);
-	return frictionVelocity;
+	if (gl_GlobalInvocationID.x > hairData.strandCount * hairData.particlesPerStrand)
+		return;
+
+	vec3 particlePosition = vec3(positions[gl_GlobalInvocationID.x][0], positions[gl_GlobalInvocationID.x][1], positions[gl_GlobalInvocationID.x][2]); 
+	vec3 particleVelocity = vec3(velocities[gl_GlobalInvocationID.x][0], velocities[gl_GlobalInvocationID.x][1], velocities[gl_GlobalInvocationID.x][2]); 
+	particleVelocity = (1.0 - frictionCoefficient) * particleVelocity + frictionCoefficient * interpolateVelocity(particlePosition);
+	velocities[gl_GlobalInvocationID.x][0] = particleVelocity.x;
+	velocities[gl_GlobalInvocationID.x][1] = particleVelocity.y;
+	velocities[gl_GlobalInvocationID.x][2] = particleVelocity.z;
 }
 
-void fillVolumes(in vec3 particlePositions[MAX_VERTICES_PER_STRAND], in vec3 particleVelocities[MAX_VERTICES_PER_STRAND]) 
+void fillVolumes() 
 {
-	for (uint index = 0; index < hairData.particlesPerStrand; ++index)
-	{
-		// Adding 2 to linearly map [-2,2] range to [0,4] range
-		const vec3 particlePosition = particlePositions[index] + 5.0;
-		const vec3 particleVelocity = particleVelocities[index];
-		ivec3 flooredCoords = ivec3(floor(particlePosition));
-		if (flooredCoords.x == 9) flooredCoords.x = 8;
-		if (flooredCoords.y == 9) flooredCoords.y = 8;
-		if (flooredCoords.z == 9) flooredCoords.z = 8;
+	if (gl_GlobalInvocationID.x > hairData.strandCount * hairData.particlesPerStrand)
+		return;
 
-		for (uint i = 0; i < 2; ++i)
+	// Adding 5 to linearly map [-5,5] range to [0,10] range
+	const vec3 particlePosition = vec3(positions[gl_GlobalInvocationID.x][0], positions[gl_GlobalInvocationID.x][1], positions[gl_GlobalInvocationID.x][2]) + 5; 
+	const vec3 particleVelocity = vec3(velocities[gl_GlobalInvocationID.x][0], velocities[gl_GlobalInvocationID.x][1], velocities[gl_GlobalInvocationID.x][2]); 
+	ivec3 flooredCoords = ivec3(floor(particlePosition));
+	if (flooredCoords.x >= 10) flooredCoords.x = 9;
+	if (flooredCoords.y >= 10) flooredCoords.y = 9;
+	if (flooredCoords.z >= 10) flooredCoords.z = 9;
+
+	for (uint i = 0; i < 2; ++i)
+	{
+		for (uint j = 0; j < 2; ++j)
 		{
-			for (uint j = 0; j < 2; ++j)
+			for (uint k = 0; k < 2; ++k)
 			{
-				for (uint k = 0; k < 2; ++k)
-				{
-					float densityWeight = (1.0 - abs(particlePosition.x - flooredCoords.x - i)) * (1.0 - abs(particlePosition.y - flooredCoords.y - j)) * (1.0 - abs(particlePosition.z - flooredCoords.z - k));
-					volumeDensities[flooredCoords.x + i][flooredCoords.y + j][flooredCoords.z + k] += densityWeight;
-					volumeVelocities[flooredCoords.x + i][flooredCoords.y + j][flooredCoords.z + k][0] += densityWeight * particleVelocity.x;
-					volumeVelocities[flooredCoords.x + i][flooredCoords.y + j][flooredCoords.z + k][1] += densityWeight * particleVelocity.y;
-					volumeVelocities[flooredCoords.x + i][flooredCoords.y + j][flooredCoords.z + k][2] += densityWeight * particleVelocity.z;
-				}
+				float densityW = (1.0 - abs(particlePosition.x - flooredCoords.x - i)) * (1.0 - abs(particlePosition.y - flooredCoords.y - j)) * (1.0 - abs(particlePosition.z - flooredCoords.z - k)) * 1000.f;
+				int densityWeight = int(densityW);
+				atomicAdd(volumeDensities[flooredCoords.x + i][flooredCoords.y + j][flooredCoords.z + k], densityWeight);
+				atomicAdd(volumeVelocities[flooredCoords.x + i][flooredCoords.y + j][flooredCoords.z + k][0], int(densityWeight * particleVelocity.x));
+				atomicAdd(volumeVelocities[flooredCoords.x + i][flooredCoords.y + j][flooredCoords.z + k][1], int(densityWeight * particleVelocity.y));
+				atomicAdd(volumeVelocities[flooredCoords.x + i][flooredCoords.y + j][flooredCoords.z + k][2], int(densityWeight * particleVelocity.z));
 			}
 		}
 	}
 }
 
-void resolveBodyCollision(inout vec3 particlePosition) {
-	if (length(particlePosition) < headRadius + 0.02f) 
-		particlePosition = normalize(particlePosition) * (headRadius + 0.02f);
+void resolveBodyCollision(inout vec3 particlePosition) 
+{
+	if (length(particlePosition) < headRadius + 0.04f) 
+		particlePosition = normalize(particlePosition) * (headRadius + 0.04f);
 }
 
-void main(void)
+void moveParticles()
 {
 	if (gl_GlobalInvocationID.x > hairData.strandCount)
 		return; 
@@ -201,41 +211,22 @@ void main(void)
 		particleVelocities[i].z = velocities[particleOffset][2];
 	}
 
-	switch (state)
+	vec3 forces, proposedPosition;
+	vec3 positionCorrectionVector[MAX_VERTICES_PER_STRAND];
+	for (uint i = 1; i < hairData.particlesPerStrand; ++i) 
 	{
-		case FTL:
-			vec3 forces, proposedPosition;
-			vec3 positionCorrectionVector[MAX_VERTICES_PER_STRAND];
-			for (uint i = 1; i < hairData.particlesPerStrand; ++i) 
-			{
-				forces = generateWindForce(particlePositions[i]);
-				forces += generateGravityForce();
+		forces = generateWindForce(particlePositions[i]);
+		forces += generateGravityForce();
+		proposedPosition = integrateExplicitEuler(forces, particlePositions[i], particleVelocities[i]);
+		proposedPosition = followTheLeader(particlePositions[i - 1], proposedPosition, positionCorrectionVector[i]);
+		resolveBodyCollision(proposedPosition);
+		particleVelocities[i] = updateVelocity(particlePositions[i], proposedPosition);
+		particlePositions[i] = proposedPosition;
+	}
 
-				proposedPosition = integrateExplicitEuler(forces, particlePositions[i], particleVelocities[i]);
-				resolveBodyCollision(proposedPosition);
-				proposedPosition = followTheLeader(particlePositions[i - 1], proposedPosition, positionCorrectionVector[i]);	
-				particleVelocities[i] = updateVelocity(particlePositions[i], proposedPosition);
-				particlePositions[i] = proposedPosition;
-			}
-
-			uint i;
-			for (i = 1; i < hairData.particlesPerStrand - 1; ++i)
-			{
-				particleVelocities[i] = correctFtlVelocity(particleVelocities[i], positionCorrectionVector[i + 1]);
-			}
-			particleVelocities[i] = correctFtlVelocity(particleVelocities[i], vec3(0.0));
-			break;
-
-		case VOLUMES:
-			fillVolumes(particlePositions, particleVelocities);
-			break;
-
-		case COLLISIONS:
-			for (i = 1; i < hairData.particlesPerStrand; ++i)
-			{
-				particleVelocities[i] = addHairFriction(particleVelocities[i], particlePositions[i]);
-			}
-			break;
+	for (uint i = 1; i < hairData.particlesPerStrand - 1; ++i)
+	{
+		particleVelocities[i] = correctFtlVelocity(particleVelocities[i], positionCorrectionVector[i + 1]);
 	}
 
 	for (uint i = 0; i < hairData.particlesPerStrand; ++i)
@@ -249,5 +240,23 @@ void main(void)
 		velocities[offset][2] = particleVelocities[i].z;
 
 		++offset;
+	}
+}
+
+void main(void)
+{
+	switch (state)
+	{
+		case FTL:
+			moveParticles();
+			break;
+
+		case FILL_VOLUMES:
+			fillVolumes();
+			break;
+
+		case COLLISIONS:
+			addHairFriction();
+			break;
 	}
 }

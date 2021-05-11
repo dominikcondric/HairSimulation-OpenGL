@@ -46,7 +46,7 @@ private:
 	glm::vec4 wind{ 0.f, 0.f, 0.f, 1.f };
 	float gravity = -9.81f;
 	bool settingsChanged = false;
-	const int maximumStrandCount = 30000;
-	float frictionFactor = 0.3f;
+	const uint32_t maximumStrandCount = 30000;
+	float frictionFactor = 0.01f;
 	void constructModel(const HairType type);
 };

@@ -39,9 +39,8 @@ int main()
 	Texture skyboxCubemap("cubemap.jpg", GL_TEXTURE_CUBE_MAP, false);
 
 	// Basic hair
-	Unique<Hair> hair = std::make_unique<Hair>(5000, 20);
+	Unique<Hair> hair = std::make_unique<Hair>(2000, 20);
 	hair->color = glm::vec3(0.22f, 0.12f, 0.02f);
-	hair->scale(glm::vec3(1.f, 1.f, 1.f));
 
 	// Shaders setup
 	DrawingShader basicShader("BasicVertexShader.glsl", "BasicFragmentShader.glsl");
@@ -58,14 +57,6 @@ int main()
 
 	bool doPhysics = false;
 	glViewport(0, 0, window->getWindowSize().x, window->getWindowSize().y);
-
-	// Instead of modeling hair to look good before starting the simulation, I start with 50 iterations of FTL
-	for (uint32_t i = 0; i < 50; ++i)
-	{
-		window->onUpdate();
-		hair->applyPhysics(window->getTime().deltaTime, window->getTime().runningTime);
-	}
-	hair->setFrictionFactor(0.03f);
 
 	do {
 		glDisable(GL_CULL_FACE);
@@ -98,7 +89,6 @@ int main()
 		headModel->updateColorsBasedOnMaterial(lightingShader, Entity::Material::PLASTIC);
 		headModel->draw();
 
-
 		if (window->isKeyPressed(GLFW_KEY_W))
 			cam.moveCamera(Camera::Directions::FORWARD, window->getTime().deltaTime);
 		if (window->isKeyPressed(GLFW_KEY_S))
@@ -120,9 +110,9 @@ int main()
 		else if (window->isKeyTapped(GLFW_KEY_O))
 			hair->decreaseStrandCount();
 
-		if (doPhysics && window->isKeyTapped(GLFW_KEY_RIGHT_SHIFT))
+		if (doPhysics && window->isKeyTapped(GLFW_KEY_2))
 			hair->setFrictionFactor(hair->getFrictionFactor() + 0.01f);
-		else if (doPhysics && window->isKeyTapped(GLFW_KEY_RIGHT_CONTROL))
+		else if (doPhysics && window->isKeyTapped(GLFW_KEY_1))
 			hair->setFrictionFactor(hair->getFrictionFactor() - 0.01f);
 		
 		if (window->isKeyTapped(GLFW_KEY_ENTER))

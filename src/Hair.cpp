@@ -6,13 +6,6 @@ Hair::Hair(uint32_t _strandCount, uint32_t strandSegmentsCount, HairType type) :
 {
 	strandSegmentsCount = glm::clamp<uint32_t>(strandSegmentsCount, 2U, 49U);
 	particlesPerStrand = strandSegmentsCount + 1;
-	constructModel(type);
-	GLuint localWorkGroupCountX = computeShader.getLocalWorkGroupsCount().x;
-	GLuint globalWorkGroupCount = strandCount / localWorkGroupCountX;
-	if (strandCount % localWorkGroupCountX != 0)
-		globalWorkGroupCount += 1;
-
-	computeShader.setGlobalWorkGroupCount(globalWorkGroupCount);
 	computeShader.use();
 	computeShader.setUint("hairData.strandCount", strandCount);
 	computeShader.setUint("hairData.particlesPerStrand", particlesPerStrand);
@@ -22,6 +15,7 @@ Hair::Hair(uint32_t _strandCount, uint32_t strandSegmentsCount, HairType type) :
 	computeShader.setVec4("force.wind", wind);
 	computeShader.setFloat("frictionCoefficient", frictionFactor);
 	computeShader.setFloat("headRadius", 1.f);
+	constructModel(type);
 }
 
 Hair::~Hair()
@@ -40,17 +34,15 @@ void Hair::constructModel(HairType type)
 	switch (type)
 	{
 	case Hair::HairType::Straight:
-		for (int i = 0; i < maximumStrandCount; ++i)
+		for (uint32_t i = 0; i < maximumStrandCount; ++i)
 		{
-			glm::vec3 randCoords = glm::sphericalRand(1.f);
-			while (randCoords.z > 0.1f || randCoords.y < -0.3f)
-			{
+			glm::vec3 randCoords = glm::sphericalRand(1.0f);
+			while (randCoords.z > 0.1f || randCoords.y < -0.7f)
 				randCoords = glm::sphericalRand(1.0f);
-			}
 
 			for (uint32_t j = 0; j < particlesPerStrand; ++j)
 			{
-				const glm::vec3 temp = randCoords;
+				glm::vec3 temp = randCoords;
 				data.push_back(temp.x);
 				data.push_back(temp.y);
 				data.push_back(temp.z - j * segmentLength);
@@ -65,7 +57,7 @@ void Hair::constructModel(HairType type)
 
 	firsts.reserve(maximumStrandCount);
 	lasts.reserve(maximumStrandCount);
-	for (int i = 0; i < maximumStrandCount - 1; ++i)
+	for (uint32_t i = 0; i < maximumStrandCount - 1; ++i)
 	{
 		firsts.push_back(particlesPerStrand * i);
 		lasts.push_back(particlesPerStrand);
@@ -91,13 +83,13 @@ void Hair::constructModel(HairType type)
 	glBufferData(GL_SHADER_STORAGE_BUFFER, data.size() * sizeof(float), data.data(), GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, velocityArrayBuffer);
 
-	GLsizeiptr voxelGridSize = 10 * 10 * 10 * sizeof(float); // 10x10x10 volume, 3 floats per vertex
+	GLsizeiptr voxelGridSize = 11 * 11 * 11 * sizeof(float); // 10x10x10 voxels, 11 vertices per dimension
 	glGenBuffers(1, &volumeDensities);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, volumeDensities);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, voxelGridSize, nullptr, GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, volumeDensities);
 
-	voxelGridSize *= 3;
+	voxelGridSize *= 3;	// 3-component vectors
 	glGenBuffers(1, &volumeVelocities);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, volumeVelocities);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, voxelGridSize, nullptr, GL_DYNAMIC_DRAW);
@@ -115,26 +107,14 @@ void Hair::setGravity(float strength)
 void Hair::increaseStrandCount()
 {
 	strandCount = glm::clamp<int>(strandCount + 10, 0, maximumStrandCount);
-
-	GLuint localWorkGroupCountX = computeShader.getLocalWorkGroupsCount().x;
-	GLuint globalWorkGroupCount = strandCount / localWorkGroupCountX;
-	if (strandCount % localWorkGroupCountX != 0)
-		globalWorkGroupCount += 1;
-
-	computeShader.setGlobalWorkGroupCount(globalWorkGroupCount);
+	settingsChanged = true;
 	std::cout << "Strand count: " << strandCount << '\n';
 }
 
 void Hair::decreaseStrandCount()
 {
 	strandCount = glm::clamp<int>(strandCount - 10, 0, maximumStrandCount);
-
-	GLuint localWorkGroupCountX = computeShader.getLocalWorkGroupsCount().x;
-	GLuint globalWorkGroupCount = strandCount / localWorkGroupCountX;
-	if (strandCount % localWorkGroupCountX != 0)
-		globalWorkGroupCount += 1;
-
-	computeShader.setGlobalWorkGroupCount(globalWorkGroupCount);
+	settingsChanged = true;
 	std::cout << "Strand count: " << strandCount << '\n';
 }
 
@@ -160,6 +140,25 @@ void Hair::draw() const
 
 void Hair::applyPhysics(float deltaTime, float runningTime)
 {
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, volumeDensities);
+	int* densities = (int*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+	uint32_t volumeSize = 11 * 11 * 11;
+	for (uint32_t i = 0; i < volumeSize; ++i)
+	{
+		densities[i] = 0;
+	}
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, volumeVelocities);
+	int* velocities = (int*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+
+	for (uint32_t i = 0; i < volumeSize * 3; i++)
+	{
+		velocities[i] = 0;	
+	}
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, GL_NONE);
+
 	computeShader.use();
 	if (settingsChanged)
 	{
@@ -173,31 +172,27 @@ void Hair::applyPhysics(float deltaTime, float runningTime)
 	computeShader.setFloat("deltaTime", deltaTime);
 	computeShader.setFloat("runningTime", runningTime);
 	computeShader.setUint("state", 0);
+	GLuint localWorkGroupCountX = computeShader.getLocalWorkGroupsCount().x;
+	GLuint globalWorkGroupCount = strandCount / localWorkGroupCountX;
+	if (strandCount % localWorkGroupCountX != 0)
+	{
+		globalWorkGroupCount += 1;
+	}
+
+	computeShader.setGlobalWorkGroupCount(globalWorkGroupCount);
 	computeShader.dispatch();
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
+	globalWorkGroupCount = strandCount * particlesPerStrand / localWorkGroupCountX;
+	if ((strandCount * particlesPerStrand) % localWorkGroupCountX != 0)
+	{
+		globalWorkGroupCount += 1;
+	}
+	computeShader.setGlobalWorkGroupCount(globalWorkGroupCount);
 	computeShader.setUint("state", 1);
 	computeShader.dispatch();
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 	computeShader.setUint("state", 2);
 	computeShader.dispatch();
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, volumeDensities);
-	float* densities = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
-
-	int volumeSize = 10 * 10 * 10;
-	for (int i = 0; i < volumeSize; ++i)
-		densities[i] = 0.f;
-
-	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, volumeVelocities);
-	float* velocities = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
-
-	for (int i = 0; i < volumeSize * 3; ++i)
-		velocities[i] = 0.f;
-
-	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, GL_NONE);
 }
