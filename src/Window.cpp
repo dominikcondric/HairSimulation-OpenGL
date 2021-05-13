@@ -1,5 +1,6 @@
 #include <iostream>
 #include "Window.h"
+#include <glm/common.hpp>
 
 Window::Window(uint32_t winWidth, uint32_t winHeight, const char* winName, int sampleCount)
 {
@@ -70,7 +71,7 @@ void Window::onUpdate()
 	t.runningTime = currentTime;
 	t.frameRate = 1.f / t.deltaTime;
 
-	if (uint32_t(t.runningTime * 1000) % 1000 == 0)
+	if (glm::abs(t.deltaTime - t.lastDeltaTime) > 0.2f)
 		std::cout << "Frame rate: " << t.frameRate << std::endl;
 
 }

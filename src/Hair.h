@@ -43,10 +43,10 @@ private:
 	uint32_t strandCount;
 	ComputeShader computeShader;
 	GLuint particlesPerStrand = 0;
-	glm::vec4 wind{ 0.f, 0.f, 0.f, 1.f };
+	glm::vec4 wind{ 0.f, 0.f, 0.f, 0.2f };
 	float gravity = -9.81f;
 	bool settingsChanged = false;
 	const uint32_t maximumStrandCount = 30000;
-	float frictionFactor = 0.01f;
+	float frictionFactor = 0.03f;
 	void constructModel(const HairType type);
 };

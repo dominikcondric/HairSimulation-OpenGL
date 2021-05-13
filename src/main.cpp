@@ -13,15 +13,16 @@ template<typename T> using Unique = std::unique_ptr<T>;
 
 int main()
 {
-	Unique<Window> window = std::make_unique<Window>(1024, 768, "Hair Simulation", 4);
+	Unique<Window> window = std::make_unique<Window>(1440, 810, "Hair Simulation", 4);
 	glEnable(GL_MULTISAMPLE);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.f);
 
 	PerspectiveCamera cam;
-	cam.setPosition(glm::vec3(0.f, 0.f, 7.f));
-	cam.setCenter(glm::vec3(0.f, -2.f, 0.f));
+	cam.setProjectionAspectRatio(1440.f / 810);
+	cam.setPosition(glm::vec3(-5.f, 3.f, 5.f));
+	cam.setCenter(glm::vec3(0.f));
 
 	// Light source model
 	Unique<Sphere> lightSphere = std::make_unique<Sphere>(10, 5, 0.5f);
@@ -39,7 +40,7 @@ int main()
 	Texture skyboxCubemap("cubemap.jpg", GL_TEXTURE_CUBE_MAP, false);
 
 	// Basic hair
-	Unique<Hair> hair = std::make_unique<Hair>(2000, 20);
+	Unique<Hair> hair = std::make_unique<Hair>(7000, 20);
 	hair->color = glm::vec3(0.22f, 0.12f, 0.02f);
 
 	// Shaders setup

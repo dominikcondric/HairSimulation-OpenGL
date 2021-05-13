@@ -23,7 +23,7 @@ GLint Shader::getUniformLocation(const std::string& name) const
 	}
 	else
 	{
-		std::cout << "Uniform variable doesn't exist, or it is unused!" << std::endl;
+		std::cout << "Uniform variable '" << name << "' doesn't exist, or it is unused!" << std::endl;
 	}
 
 	return location;

@@ -4,6 +4,8 @@
 #define FILL_VOLUMES 1
 #define COLLISIONS 2
 
+#define VOLUME_UPPER_LIMIT 10
+
 layout (local_size_x = 128) in;
 
 layout (std430, binding = 0) buffer HairPosition {
@@ -79,6 +81,18 @@ vec3 integrateExplicitEuler(in vec3 forces, in vec3 particlePosition, in vec3 pa
 	return (particlePosition + (particleVelocity * deltaTime) + (acceleration * deltaTime * deltaTime));
 }
 
+vec3 integrateHeun(in vec3 forces, in vec3 particlePosition, in vec3 particleVelocity) 
+{
+	const vec3 acceleration = forces / hairData.particleMass;
+
+	const vec3 firstVelocity = particleVelocity + deltaTime * acceleration;
+	const vec3 firstPosition = particlePosition + deltaTime * firstVelocity;
+
+	const vec3 secondVelocity = firstVelocity + deltaTime * (generateGravityForce() + generateWindForce(firstPosition) / hairData.particleMass);
+
+	return (particlePosition + deltaTime * ((firstVelocity + secondVelocity) / 2));
+}
+
 vec3 updateVelocity(in vec3 oldPosition, in vec3 newPosition) 
 {
 	return ((newPosition - oldPosition) / deltaTime);
@@ -87,13 +101,13 @@ vec3 updateVelocity(in vec3 oldPosition, in vec3 newPosition)
 // Very useful article: https://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/interpolation/introduction
 vec3 interpolateVelocity(in vec3 particlePosition)
 {
-	particlePosition += 5;
+	particlePosition += (VOLUME_UPPER_LIMIT / 2);
 	ivec3 flooredCoords = ivec3(floor(particlePosition));
 
 	// Upper limit of the regular voxel grid, flooring to 9
-	if (flooredCoords.x >= 10) flooredCoords.x = 9;
-	if (flooredCoords.y >= 10) flooredCoords.y = 9;
-	if (flooredCoords.z >= 10) flooredCoords.z = 9;
+	if (flooredCoords.x >= VOLUME_UPPER_LIMIT) flooredCoords.x = VOLUME_UPPER_LIMIT - 1;
+	if (flooredCoords.y >= VOLUME_UPPER_LIMIT) flooredCoords.y = VOLUME_UPPER_LIMIT - 1;
+	if (flooredCoords.z >= VOLUME_UPPER_LIMIT) flooredCoords.z = VOLUME_UPPER_LIMIT - 1;
 
 	vec3 voxelVertexVelocities[2][2][2];
 	for (uint i = 0; i < 2; ++i)
@@ -157,12 +171,12 @@ void fillVolumes()
 		return;
 
 	// Adding 5 to linearly map [-5,5] range to [0,10] range
-	const vec3 particlePosition = vec3(positions[gl_GlobalInvocationID.x][0], positions[gl_GlobalInvocationID.x][1], positions[gl_GlobalInvocationID.x][2]) + 5; 
+	const vec3 particlePosition = vec3(positions[gl_GlobalInvocationID.x][0], positions[gl_GlobalInvocationID.x][1], positions[gl_GlobalInvocationID.x][2]) + (VOLUME_UPPER_LIMIT / 2); 
 	const vec3 particleVelocity = vec3(velocities[gl_GlobalInvocationID.x][0], velocities[gl_GlobalInvocationID.x][1], velocities[gl_GlobalInvocationID.x][2]); 
 	ivec3 flooredCoords = ivec3(floor(particlePosition));
-	if (flooredCoords.x >= 10) flooredCoords.x = 9;
-	if (flooredCoords.y >= 10) flooredCoords.y = 9;
-	if (flooredCoords.z >= 10) flooredCoords.z = 9;
+	if (flooredCoords.x >= VOLUME_UPPER_LIMIT) flooredCoords.x = VOLUME_UPPER_LIMIT - 1;
+	if (flooredCoords.y >= VOLUME_UPPER_LIMIT) flooredCoords.y = VOLUME_UPPER_LIMIT - 1;
+	if (flooredCoords.z >= VOLUME_UPPER_LIMIT) flooredCoords.z = VOLUME_UPPER_LIMIT - 1;
 
 	for (uint i = 0; i < 2; ++i)
 	{
@@ -217,7 +231,8 @@ void moveParticles()
 	{
 		forces = generateWindForce(particlePositions[i]);
 		forces += generateGravityForce();
-		proposedPosition = integrateExplicitEuler(forces, particlePositions[i], particleVelocities[i]);
+		proposedPosition = integrateHeun(forces, particlePositions[i], particleVelocities[i]);
+		// proposedPosition = integrateExplicitEuler(forces, particlePositions[i], particleVelocities[i]);
 		proposedPosition = followTheLeader(particlePositions[i - 1], proposedPosition, positionCorrectionVector[i]);
 		resolveBodyCollision(proposedPosition);
 		particleVelocities[i] = updateVelocity(particlePositions[i], proposedPosition);
