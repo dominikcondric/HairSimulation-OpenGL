@@ -36,6 +36,7 @@ struct Force {
 	float gravity;
 };
 
+uniform float curlRadius = 0.05f;
 uniform float headRadius;
 uniform uint state;
 uniform Force force;
@@ -197,8 +198,8 @@ void fillVolumes()
 
 void resolveBodyCollision(inout vec3 particlePosition) 
 {
-	if (length(particlePosition) < headRadius + 0.04f) 
-		particlePosition = normalize(particlePosition) * (headRadius + 0.04f);
+	if (length(particlePosition) < headRadius + 0.04f + curlRadius) 
+		particlePosition = normalize(particlePosition) * (headRadius + 0.04f + curlRadius);
 }
 
 void moveParticles()

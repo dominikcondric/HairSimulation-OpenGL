@@ -18,6 +18,7 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.f);
+	glLineWidth(3.f);
 
 	PerspectiveCamera cam;
 	cam.setProjectionAspectRatio(1440.f / 810);
@@ -40,13 +41,14 @@ int main()
 	Texture skyboxCubemap("cubemap.jpg", GL_TEXTURE_CUBE_MAP, false);
 
 	// Basic hair
-	Unique<Hair> hair = std::make_unique<Hair>(7000, 20);
+	Unique<Hair> hair = std::make_unique<Hair>(2000, Hair::HairType::Curly);
 	hair->color = glm::vec3(0.22f, 0.12f, 0.02f);
 
 	// Shaders setup
 	DrawingShader basicShader("BasicVertexShader.glsl", "BasicFragmentShader.glsl");
 	DrawingShader lightingShader("LightVertexShader.glsl", "LightFragmentShader.glsl");
 	DrawingShader skyboxShader("SkyboxVertexShader.glsl", "SkyboxFragmentShader.glsl");
+	DrawingShader hairShader("HairVertexShader.glsl", "HairGeometryShader.glsl", "BasicFragmentShader.glsl");
 
 	// Scene light setup
 	lightingShader.use();
@@ -71,14 +73,10 @@ int main()
 		if (doPhysics && glm::abs(window->getTime().deltaTime - window->getTime().lastDeltaTime) < 0.1f)
 			hair->applyPhysics(window->getTime().deltaTime, window->getTime().runningTime);
 
+		glEnable(GL_CULL_FACE);
 		basicShader.use();
 		basicShader.setMat4("projection", cam.getProjection());
 		basicShader.setMat4("view", cam.getView());
-		basicShader.setMat4("model", hair->getTransformMatrix());
-		basicShader.setVec3("objectColor", hair->color);
-		hair->draw();
-
-		glEnable(GL_CULL_FACE);
 		basicShader.setMat4("model", lightSphere->getTransformMatrix());
 		basicShader.setVec3("objectColor", lightSphere->color);
 		lightSphere->draw();
@@ -89,6 +87,27 @@ int main()
 		lightingShader.setMat4("model", headModel->getTransformMatrix());
 		headModel->updateColorsBasedOnMaterial(lightingShader, Entity::Material::PLASTIC);
 		headModel->draw();
+
+		if (hair->curlRadius == 0.f)
+		{
+			basicShader.use();
+			basicShader.setMat4("projection", cam.getProjection());
+			basicShader.setMat4("view", cam.getView());
+			basicShader.setMat4("model", hair->getTransformMatrix());
+			basicShader.setVec3("objectColor", hair->color);
+		} 
+		else
+		{
+			hairShader.use();
+			hairShader.setMat4("projection", cam.getProjection());
+			hairShader.setMat4("view", cam.getView());
+			hairShader.setMat4("model", hair->getTransformMatrix());
+			hairShader.setFloat("curlRadius", hair->curlRadius);
+			hairShader.setVec3("objectColor", hair->color);
+		}
+
+		hair->draw();
+
 
 		if (window->isKeyPressed(GLFW_KEY_W))
 			cam.moveCamera(Camera::Directions::FORWARD, window->getTime().deltaTime);

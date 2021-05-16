@@ -2,20 +2,16 @@
 #include <iostream>
 #include <glm/gtc/random.hpp>
 
-Hair::Hair(uint32_t _strandCount, uint32_t strandSegmentsCount, HairType type) : strandCount(_strandCount), computeShader("HairComputeShader.glsl")
+Hair::Hair(uint32_t _strandCount, HairType hairType) : strandCount(_strandCount), computeShader("HairComputeShader.glsl")
 {
-	strandSegmentsCount = glm::clamp<uint32_t>(strandSegmentsCount, 2U, 49U);
-	particlesPerStrand = strandSegmentsCount + 1;
 	computeShader.use();
 	computeShader.setUint("hairData.strandCount", strandCount);
-	computeShader.setUint("hairData.particlesPerStrand", particlesPerStrand);
 	computeShader.setFloat("hairData.particleMass", 0.1f);
-	computeShader.setFloat("hairData.segmentLength", 4.f / strandSegmentsCount);
 	computeShader.setFloat("force.gravity", gravity);
 	computeShader.setVec4("force.wind", wind);
 	computeShader.setFloat("frictionCoefficient", frictionFactor);
 	computeShader.setFloat("headRadius", 1.f);
-	constructModel(type);
+	constructModel(hairType);
 }
 
 Hair::~Hair()
@@ -27,32 +23,50 @@ Hair::~Hair()
 
 void Hair::constructModel(HairType type)
 {
-	const float segmentLength = 4.f / (particlesPerStrand - 1);
 	std::vector<float> data;
 	data.reserve(maximumStrandCount * particlesPerStrand * 3);
 
 	switch (type)
 	{
-	case Hair::HairType::Straight:
-		for (uint32_t i = 0; i < maximumStrandCount; ++i)
+		case Hair::HairType::Straight:
+			particlesPerStrand = 30;
+			hairLength = 4.f;
+			curlRadius = 0.0f;
+			strandWidth = 1.f;
+			frictionFactor = 0.12f;
+			computeShader.use();
+			computeShader.setFloat("curlRadius", curlRadius);
+			computeShader.setFloat("hairData.segmentLength", hairLength / (particlesPerStrand - 1));
+			computeShader.setUint("hairData.particlesPerStrand", particlesPerStrand);
+			break;
+
+		case Hair::HairType::Curly:
+			particlesPerStrand = 10;
+			hairLength = 1.f;
+			strandWidth = 3.f;
+			curlRadius = 0.04f;
+			frictionFactor = 0.2f;
+			computeShader.use();
+			computeShader.setFloat("curlRadius", curlRadius);
+			computeShader.setFloat("hairData.segmentLength", hairLength / (particlesPerStrand - 1));
+			computeShader.setUint("hairData.particlesPerStrand", particlesPerStrand);
+			break;
+	}
+
+	float segmentLength = hairLength / (particlesPerStrand - 1);
+	for (uint32_t i = 0; i < maximumStrandCount; ++i)
+	{
+		glm::vec3 randCoords = glm::sphericalRand(1.0f);
+		while (randCoords.z > 0.4f || randCoords.y < -0.7f)
+			randCoords = glm::sphericalRand(1.0f);
+
+		for (uint32_t j = 0; j < particlesPerStrand; ++j)
 		{
-			glm::vec3 randCoords = glm::sphericalRand(1.0f);
-			while (randCoords.z > 0.1f || randCoords.y < -0.7f)
-				randCoords = glm::sphericalRand(1.0f);
-
-			for (uint32_t j = 0; j < particlesPerStrand; ++j)
-			{
-				glm::vec3 temp = randCoords;
-				data.push_back(temp.x);
-				data.push_back(temp.y);
-				data.push_back(temp.z - j * segmentLength);
-			}
+			glm::vec3 temp = randCoords;
+			data.push_back(temp.x);
+			data.push_back(temp.y);
+			data.push_back(temp.z - j * segmentLength);
 		}
-		break;
-
-	case Hair::HairType::Curly:
-		std::cout << "Not yet implemented!" << std::endl;
-		break;
 	}
 
 	firsts.reserve(maximumStrandCount);
@@ -133,6 +147,7 @@ void Hair::setFrictionFactor(float friction)
 
 void Hair::draw() const 
 {
+	glLineWidth(strandWidth);
 	glBindVertexArray(vao);
 	glMultiDrawArrays(GL_LINE_STRIP, firsts.data(), lasts.data(), strandCount);
 	glBindVertexArray(GL_NONE);

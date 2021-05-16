@@ -12,7 +12,7 @@ public:
 	};
 
 public:
-	Hair(uint32_t _strandCount = 5000U, uint32_t strandSegmentsCount = 10U, HairType type = HairType::Straight);
+	Hair(uint32_t _strandCount = 5000U, HairType hairType = HairType::Straight);
 	~Hair();
 	void draw() const override;
 	void applyPhysics(float deltaTime, float runningTime);
@@ -32,6 +32,7 @@ public:
 	*/
 	void setFrictionFactor(float friction);
 	float getFrictionFactor() const { return frictionFactor; }
+	float curlRadius = 0.02f;
 
 private:
 	GLuint velocityArrayBuffer = GL_NONE;		// Shader storage buffer object for velocities
@@ -49,4 +50,6 @@ private:
 	const uint32_t maximumStrandCount = 30000;
 	float frictionFactor = 0.03f;
 	void constructModel(const HairType type);
+	float strandWidth = 1.f;
+	float hairLength = 1.f;
 };
