@@ -37,6 +37,8 @@ Window::Window(uint32_t winWidth, uint32_t winHeight, const char* winName, int s
 	keyStates.insert({ GLFW_KEY_O, false });
 	keyStates.insert({ GLFW_KEY_1, false });
 	keyStates.insert({ GLFW_KEY_2, false });
+	keyStates.insert({ GLFW_KEY_K, false });
+	keyStates.insert({ GLFW_KEY_L, false });
 
 	onUpdate();
 }

@@ -21,7 +21,8 @@ public:
 	enum class Material {
 		PLASTIC,
 		METAL,
-		FABRIC
+		FABRIC,
+		HAIR
 	};
 
 	void updateColorsBasedOnMaterial(const Shader& shader, Material material) const;

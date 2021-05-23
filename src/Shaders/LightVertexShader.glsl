@@ -13,8 +13,6 @@ out Attributes {
 uniform mat4 projection;
 uniform mat4 view;
 uniform mat4 model;
-uniform vec3 vertexTranslation[10000];
-uniform bool cloth = false;
 
 void main() {
 	mat3 normalMatrix;

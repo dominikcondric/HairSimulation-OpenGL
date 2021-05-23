@@ -11,7 +11,7 @@
 
 template<typename T> using Unique = std::unique_ptr<T>;
 
-int main()
+int main(void)
 {
 	Unique<Window> window = std::make_unique<Window>(1440, 810, "Hair Simulation", 4);
 	glEnable(GL_MULTISAMPLE);
@@ -28,7 +28,7 @@ int main()
 	// Light source model
 	Unique<Sphere> lightSphere = std::make_unique<Sphere>(10, 5, 0.5f);
 	lightSphere->scale(glm::vec3(0.1f));
-	lightSphere->translate(glm::vec3(1.f, 2.f, 1.f));
+	lightSphere->translate(glm::vec3(1.f, 2.f, -1.f));
 	lightSphere->color = glm::vec3(1.f);
 
 	// Sphere(head sim)
@@ -41,14 +41,14 @@ int main()
 	Texture skyboxCubemap("cubemap.jpg", GL_TEXTURE_CUBE_MAP, false);
 
 	// Basic hair
-	Unique<Hair> hair = std::make_unique<Hair>(2000, Hair::HairType::Curly);
-	hair->color = glm::vec3(0.22f, 0.12f, 0.02f);
+	Unique<Hair> hair = std::make_unique<Hair>(7000, 2.f, 0.f);
+	hair->color = glm::vec3(0.45f, 0.18f, 0.012f);
 
 	// Shaders setup
 	DrawingShader basicShader("BasicVertexShader.glsl", "BasicFragmentShader.glsl");
 	DrawingShader lightingShader("LightVertexShader.glsl", "LightFragmentShader.glsl");
 	DrawingShader skyboxShader("SkyboxVertexShader.glsl", "SkyboxFragmentShader.glsl");
-	DrawingShader hairShader("HairVertexShader.glsl", "HairGeometryShader.glsl", "BasicFragmentShader.glsl");
+	DrawingShader hairShader("HairVertexShader.glsl", "HairGeometryShader.glsl", "HairFragmentShader.glsl");
 
 	// Scene light setup
 	lightingShader.use();
@@ -57,6 +57,13 @@ int main()
 	lightingShader.setFloat("light.constant", 1.f);
 	lightingShader.setFloat("light.linear", 0.024f);
 	lightingShader.setFloat("light.quadratic", 0.0021f);
+
+	hairShader.use();
+	hairShader.setVec3("light.position", glm::vec3(glm::column(lightSphere->getTransformMatrix(), 3)));
+	hairShader.setVec3("light.color", lightSphere->color);
+	hairShader.setFloat("light.constant", 1.f);
+	hairShader.setFloat("light.linear", 0.024f);
+	hairShader.setFloat("light.quadratic", 0.0021f);
 
 	bool doPhysics = false;
 	glViewport(0, 0, window->getWindowSize().x, window->getWindowSize().y);
@@ -85,42 +92,49 @@ int main()
 		lightingShader.setMat4("projection", cam.getProjection());
 		lightingShader.setMat4("view", cam.getView());
 		lightingShader.setMat4("model", headModel->getTransformMatrix());
+		lightingShader.setVec3("eyePosition", cam.getPosition());
+		lightingShader.setVec3("light.position", glm::vec3(glm::column(lightSphere->getTransformMatrix(), 3)));
 		headModel->updateColorsBasedOnMaterial(lightingShader, Entity::Material::PLASTIC);
 		headModel->draw();
 
-		if (hair->curlRadius == 0.f)
-		{
-			basicShader.use();
-			basicShader.setMat4("projection", cam.getProjection());
-			basicShader.setMat4("view", cam.getView());
-			basicShader.setMat4("model", hair->getTransformMatrix());
-			basicShader.setVec3("objectColor", hair->color);
-		} 
-		else
-		{
-			hairShader.use();
-			hairShader.setMat4("projection", cam.getProjection());
-			hairShader.setMat4("view", cam.getView());
-			hairShader.setMat4("model", hair->getTransformMatrix());
-			hairShader.setFloat("curlRadius", hair->curlRadius);
-			hairShader.setVec3("objectColor", hair->color);
-		}
-
+		hairShader.use();
+		hairShader.setMat4("projection", cam.getProjection());
+		hairShader.setMat4("view", cam.getView());
+		hairShader.setMat4("model", hair->getTransformMatrix());
+		hairShader.setFloat("curlRadius", hair->getCurlRadius());
+		hairShader.setVec3("eyePosition", cam.getPosition());
+		hairShader.setVec3("light.position", glm::vec3(glm::column(lightSphere->getTransformMatrix(), 3)));
+		hair->updateColorsBasedOnMaterial(hairShader, Entity::Material::HAIR);
 		hair->draw();
 
-
+		float deltaTime = window->getTime().deltaTime;
 		if (window->isKeyPressed(GLFW_KEY_W))
-			cam.moveCamera(Camera::Directions::FORWARD, window->getTime().deltaTime);
+			cam.moveCamera(Camera::Directions::FORWARD, deltaTime);
 		if (window->isKeyPressed(GLFW_KEY_S))
-			cam.moveCamera(Camera::Directions::BACKWARD, window->getTime().deltaTime);
+			cam.moveCamera(Camera::Directions::BACKWARD, deltaTime);
 		if (window->isKeyPressed(GLFW_KEY_A))
-			cam.moveCamera(Camera::Directions::LEFT, window->getTime().deltaTime);
+			cam.moveCamera(Camera::Directions::LEFT, deltaTime);
 		if (window->isKeyPressed(GLFW_KEY_D))
-			cam.moveCamera(Camera::Directions::RIGHT, window->getTime().deltaTime);
+			cam.moveCamera(Camera::Directions::RIGHT, deltaTime);
 		if (window->isKeyPressed(GLFW_KEY_SPACE))
-			cam.moveCamera(Camera::Directions::UP, window->getTime().deltaTime);
+			cam.moveCamera(Camera::Directions::UP, deltaTime);
 		if (window->isKeyPressed(GLFW_KEY_LEFT_SHIFT))
-			cam.moveCamera(Camera::Directions::DOWN, window->getTime().deltaTime);
+			cam.moveCamera(Camera::Directions::DOWN, deltaTime);
+
+
+		if (window->isKeyPressed(GLFW_KEY_UP))
+			lightSphere->translate(lightSphere->getTranslation() + glm::cross(glm::vec3(0.f, 1.f, 0.f), cam.getUDirection()) * deltaTime * 10.f);
+		if (window->isKeyPressed(GLFW_KEY_DOWN))
+			lightSphere->translate(lightSphere->getTranslation() - glm::cross(glm::vec3(0.f, 1.f, 0.f), cam.getUDirection()) * deltaTime * 10.f);
+		if (window->isKeyPressed(GLFW_KEY_RIGHT))
+			lightSphere->translate(lightSphere->getTranslation() + cam.getUDirection() * deltaTime * 10.f);
+		if (window->isKeyPressed(GLFW_KEY_LEFT))
+			lightSphere->translate(lightSphere->getTranslation() - cam.getUDirection() * deltaTime * 10.f);
+
+		if (window->isKeyTapped(GLFW_KEY_L))
+			hair->increaseCurlRadius();
+		else if (window->isKeyTapped(GLFW_KEY_K))
+			hair->decreaseCurlRadius();
 
 		if (window->isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT))
 			cam.rotateCamera(window->getCursorOffset());
@@ -147,4 +161,6 @@ int main()
 
 		window->onUpdate();
 	} while (!window->shouldClose());
+
+	return 0;
 }

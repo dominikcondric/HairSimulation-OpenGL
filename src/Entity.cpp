@@ -41,7 +41,7 @@ void Entity::updateColorsBasedOnMaterial(const Shader& shader, Material material
 			shader.setVec3("material.ambient", 0.2f * color);
 			shader.setVec3("material.diffuse", 0.8f * color);
 			shader.setVec3("material.specular", color);
-			shader.setFloat("material.shininess", 10.f);
+			shader.setFloat("material.shininess", 5.f);
 			break;
 		case Material::METAL:
 			shader.setVec3("material.ambient", 0.8f * color);
@@ -54,6 +54,12 @@ void Entity::updateColorsBasedOnMaterial(const Shader& shader, Material material
 			shader.setVec3("material.diffuse", color);
 			shader.setVec3("material.specular", color * 0.05f);
 			shader.setFloat("material.shininess", 1.f);
+			break;
+		case Material::HAIR:
+			shader.setVec3("material.ambient", 0.1f * color);
+			shader.setVec3("material.diffuse", color * 0.15f);
+			shader.setVec3("material.specular", color * 0.4f);
+			shader.setFloat("material.shininess", 300.f);
 			break;
 	}
 }
