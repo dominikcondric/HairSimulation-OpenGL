@@ -5,11 +5,11 @@ in vec3 direction;
 out vec4 color;
 
 uniform samplerCube cubeSampler;
-uniform int blurFactor = 300;
+uniform int blurFactor = 200;
 
 void main()
 {
-	float offset = 1.0 / blurFactor;
+	float offset = 1.0 / (1000 - blurFactor);
 	vec3 offsets[9] = vec3[](
 		vec3(-offset, offset, -offset),
 		vec3(0.0, offset, 0.0),

@@ -8,6 +8,8 @@
 #include "DrawingShader.h"
 #include <glm/gtc/matrix_access.hpp>
 #include <iostream>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 template<typename T> using Unique = std::unique_ptr<T>;
 
@@ -24,21 +26,17 @@ int main(void)
 	cam.setProjectionAspectRatio(1440.f / 810);
 	cam.setPosition(glm::vec3(-5.f, 3.f, 5.f));
 	cam.setCenter(glm::vec3(0.f));
+	cam.setProjectionViewingAngle(100.f);
 
 	// Light source model
 	Unique<Sphere> lightSphere = std::make_unique<Sphere>(10, 5, 0.5f);
 	lightSphere->scale(glm::vec3(0.1f));
-	lightSphere->translate(glm::vec3(1.f, 2.f, -1.f));
+	lightSphere->translate(glm::vec3(1.f, 2.f, 1.f));
 	lightSphere->color = glm::vec3(1.f);
-
-	// Sphere(head sim)
-	Unique<Sphere> headModel = std::make_unique<Sphere>(50, 30, 0.5f);
-	headModel->scale(glm::vec3(2.f));
-	headModel->color = glm::vec3(0.85f, 0.48f, 0.2f);
 
 	// Skybox
 	Unique<Cube> skybox = std::make_unique<Cube>(glm::vec3(-1.f), glm::vec3(1.f));
-	Texture skyboxCubemap("cubemap.jpg", GL_TEXTURE_CUBE_MAP, false);
+	Texture skyboxCubemap("room.png", GL_TEXTURE_CUBE_MAP, false);
 
 	// Basic hair
 	Unique<Hair> hair = std::make_unique<Hair>(7000, 2.f, 0.f);
@@ -66,8 +64,25 @@ int main(void)
 	hairShader.setFloat("light.quadratic", 0.0021f);
 
 	bool doPhysics = false;
-	glViewport(0, 0, window->getWindowSize().x, window->getWindowSize().y);
 
+	enum Control {
+		LIGHT_MOVEMENT,
+		HAIR_MOVEMENT,
+		HAIR_ROTATION,
+		HAIR_FRICTION,
+		HAIR_CURLINESS,
+		HAIR_STRAND_COUNT
+	};
+
+	/*
+	* Controls which action arrows currently correspond to
+	*/
+	Control control = Control::LIGHT_MOVEMENT;
+
+	float angleX = 0.f;
+	float angleY = 0.f;
+
+	glViewport(0, 0, window->getWindowSize().x, window->getWindowSize().y);
 	do {
 		glDisable(GL_CULL_FACE);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -88,14 +103,15 @@ int main(void)
 		basicShader.setVec3("objectColor", lightSphere->color);
 		lightSphere->draw();
 		
+		const Entity& headModel = hair->getBody();
 		lightingShader.use();
 		lightingShader.setMat4("projection", cam.getProjection());
 		lightingShader.setMat4("view", cam.getView());
-		lightingShader.setMat4("model", headModel->getTransformMatrix());
 		lightingShader.setVec3("eyePosition", cam.getPosition());
+		lightingShader.setMat4("model", headModel.getTransformMatrix());
 		lightingShader.setVec3("light.position", glm::vec3(glm::column(lightSphere->getTransformMatrix(), 3)));
-		headModel->updateColorsBasedOnMaterial(lightingShader, Entity::Material::PLASTIC);
-		headModel->draw();
+		headModel.updateColorsBasedOnMaterial(lightingShader, Entity::Material::PLASTIC);
+		headModel.draw();
 
 		hairShader.use();
 		hairShader.setMat4("projection", cam.getProjection());
@@ -103,6 +119,7 @@ int main(void)
 		hairShader.setMat4("model", hair->getTransformMatrix());
 		hairShader.setFloat("curlRadius", hair->getCurlRadius());
 		hairShader.setVec3("eyePosition", cam.getPosition());
+		hairShader.setUint("particlesPerStrand", hair->getParticlesPerStrand());
 		hairShader.setVec3("light.position", glm::vec3(glm::column(lightSphere->getTransformMatrix(), 3)));
 		hair->updateColorsBasedOnMaterial(hairShader, Entity::Material::HAIR);
 		hair->draw();
@@ -121,33 +138,107 @@ int main(void)
 		if (window->isKeyPressed(GLFW_KEY_LEFT_SHIFT))
 			cam.moveCamera(Camera::Directions::DOWN, deltaTime);
 
-
-		if (window->isKeyPressed(GLFW_KEY_UP))
-			lightSphere->translate(lightSphere->getTranslation() + glm::cross(glm::vec3(0.f, 1.f, 0.f), cam.getUDirection()) * deltaTime * 10.f);
-		if (window->isKeyPressed(GLFW_KEY_DOWN))
-			lightSphere->translate(lightSphere->getTranslation() - glm::cross(glm::vec3(0.f, 1.f, 0.f), cam.getUDirection()) * deltaTime * 10.f);
-		if (window->isKeyPressed(GLFW_KEY_RIGHT))
-			lightSphere->translate(lightSphere->getTranslation() + cam.getUDirection() * deltaTime * 10.f);
-		if (window->isKeyPressed(GLFW_KEY_LEFT))
-			lightSphere->translate(lightSphere->getTranslation() - cam.getUDirection() * deltaTime * 10.f);
-
-		if (window->isKeyTapped(GLFW_KEY_L))
-			hair->increaseCurlRadius();
-		else if (window->isKeyTapped(GLFW_KEY_K))
-			hair->decreaseCurlRadius();
-
 		if (window->isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT))
 			cam.rotateCamera(window->getCursorOffset());
 
-		if (window->isKeyTapped(GLFW_KEY_I))
-			hair->increaseStrandCount();
-		else if (window->isKeyTapped(GLFW_KEY_O))
-			hair->decreaseStrandCount();
+		for (int i = 0; i < 5; ++i)
+		{
+			if (window->isKeyTapped(i + GLFW_KEY_0))
+			{
+				control = (Control)i;
+				std::cout << "Currently controlling: ";
+				switch (i)
+				{
+					case 0:
+						std::cout << "Light movement" << std::endl;
+						break;
+					case 1:
+						std::cout << "Hair movement" << std::endl;
+						break;
+					case 2:
+						std::cout << "Hair rotation" << std::endl;
+						break;
+					case 3:
+						std::cout << "Hair friction" << std::endl;
+						break;
+					case 4:
+						std::cout << "Hair curliness" << std::endl;
+						break;
+					case 5:
+						std::cout << "Hair strand count" << std::endl;
+						break;
+				}
+				break;
+			}
+		}
 
-		if (doPhysics && window->isKeyTapped(GLFW_KEY_2))
-			hair->setFrictionFactor(hair->getFrictionFactor() + 0.01f);
-		else if (doPhysics && window->isKeyTapped(GLFW_KEY_1))
-			hair->setFrictionFactor(hair->getFrictionFactor() - 0.01f);
+		switch (control)
+		{
+			case LIGHT_MOVEMENT:
+				if (window->isKeyPressed(GLFW_KEY_UP))
+					lightSphere->translate(lightSphere->getTranslation() + glm::cross(glm::vec3(0.f, 1.f, 0.f), cam.getUDirection()) * deltaTime * 10.f);
+				if (window->isKeyPressed(GLFW_KEY_DOWN))
+					lightSphere->translate(lightSphere->getTranslation() - glm::cross(glm::vec3(0.f, 1.f, 0.f), cam.getUDirection()) * deltaTime * 10.f);
+				if (window->isKeyPressed(GLFW_KEY_RIGHT))
+					lightSphere->translate(lightSphere->getTranslation() + cam.getUDirection() * deltaTime * 10.f);
+				if (window->isKeyPressed(GLFW_KEY_LEFT))
+					lightSphere->translate(lightSphere->getTranslation() - cam.getUDirection() * deltaTime * 10.f);
+				break;
+
+			case HAIR_MOVEMENT:
+				if (doPhysics)
+				{
+					if (window->isKeyPressed(GLFW_KEY_UP))
+						hair->translate(hair->getTranslation() + glm::cross(glm::vec3(0.f, 1.f, 0.f), cam.getUDirection()) * deltaTime * 4.f);
+					if (window->isKeyPressed(GLFW_KEY_DOWN))
+						hair->translate(hair->getTranslation() - glm::cross(glm::vec3(0.f, 1.f, 0.f), cam.getUDirection()) * deltaTime * 4.f);
+					if (window->isKeyPressed(GLFW_KEY_RIGHT))
+						hair->translate(hair->getTranslation() + cam.getUDirection() * deltaTime * 4.f);
+					if (window->isKeyPressed(GLFW_KEY_LEFT))
+						hair->translate(hair->getTranslation() - cam.getUDirection() * deltaTime * 4.f);
+				}
+				break;
+
+			case HAIR_ROTATION:
+				if (doPhysics)
+				{
+					constexpr float pi = glm::pi<float>();
+					if (window->isKeyPressed(GLFW_KEY_UP))
+						angleX = glm::clamp(angleX + deltaTime * 10.f, -pi / 2.f, pi / 2.f);
+					if (window->isKeyPressed(GLFW_KEY_DOWN))
+						angleX = glm::clamp(angleX - deltaTime * 10.f, -pi / 2.f, pi / 2.f);
+					if (window->isKeyPressed(GLFW_KEY_RIGHT))
+						angleY = glm::clamp(angleY + deltaTime * 10.f, -pi / 2.f, pi / 2.f);
+					if (window->isKeyPressed(GLFW_KEY_LEFT))
+						angleY = glm::clamp(angleY - deltaTime * 10.f, -pi / 2.f, pi / 2.f);
+				}
+
+				glm::quat result = glm::angleAxis(angleX, glm::vec3(1.f, 0.f, 0.f));
+				result = glm::rotate(result, angleY, glm::vec3(0.f, 1.f, 0.f));
+				hair->rotate(glm::degrees(2.f * glm::acos(result.w)), glm::vec3(result.x, result.y, result.z));
+				break;
+
+			case HAIR_FRICTION:
+				if (doPhysics && window->isKeyTapped(GLFW_KEY_UP))
+					hair->setFrictionFactor(hair->getFrictionFactor() + 0.01f);
+				else if (doPhysics && window->isKeyTapped(GLFW_KEY_DOWN))
+					hair->setFrictionFactor(hair->getFrictionFactor() - 0.01f);
+				break;
+
+			case HAIR_CURLINESS:
+				if (window->isKeyTapped(GLFW_KEY_UP))
+					hair->increaseCurlRadius();
+				else if (window->isKeyTapped(GLFW_KEY_DOWN))
+					hair->decreaseCurlRadius();
+				break;
+
+			case HAIR_STRAND_COUNT:
+				if (window->isKeyTapped(GLFW_KEY_UP))
+					hair->increaseStrandCount();
+				else if (window->isKeyTapped(GLFW_KEY_DOWN))
+					hair->decreaseStrandCount();
+				break;
+		}
 		
 		if (window->isKeyTapped(GLFW_KEY_ENTER))
 			doPhysics = !doPhysics;

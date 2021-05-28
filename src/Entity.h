@@ -13,9 +13,10 @@ public:
 	void rotate(float angle, const glm::vec3& axis);
 	void scale(const glm::vec3& factor);
 	void translate(const glm::vec3& factor);
-	const glm::mat4& getTransformMatrix() { return transformMatrix; }
+	const glm::mat4& getTransformMatrix() const { return transformMatrix; }
 	const glm::vec3& getScale() const { return scaleVector; }
 	const glm::vec3& getTranslation() const { return translationVector; }
+	const glm::quat& getRotationQuat() const { return rotationQuat; }
 	glm::vec3 color{ 1.f };
 
 	enum class Material {

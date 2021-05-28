@@ -14,16 +14,17 @@ Shader::~Shader()
 GLint Shader::getUniformLocation(const std::string& name) const
 {
 	if ((uniformCache.find(name)) != uniformCache.end()) 
-		return uniformCache[name];
+		return uniformCache[name].first;
 
 	GLint location = glGetUniformLocation(programID, name.c_str());
 	if (location != -1) 
 	{
-		uniformCache.insert(std::make_pair(name, location));
+		uniformCache.insert(std::make_pair(name, std::make_pair(location, false)));
 	}
-	else
+	else if (!uniformCache[name].second)
 	{
 		std::cout << "Uniform variable '" << name << "' doesn't exist, or it is unused!" << std::endl;
+		uniformCache[name].second = true;
 	}
 
 	return location;

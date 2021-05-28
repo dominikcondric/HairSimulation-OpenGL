@@ -16,7 +16,6 @@ out Attributes {
 
 uniform mat4 projection;
 uniform mat4 view;
-uniform mat4 model;
 uniform float curlRadius = 0.05f;
 
 void main(void)
@@ -36,7 +35,6 @@ void main(void)
 		nextPosition = startingPosition + hairDirection * segmentLength * i;
 		nextPosition += curlRadius * uDirection * cos(radians(angleStep) * i);
 		nextPosition += curlRadius * vDirection * sin(radians(angleStep) * i);
-		nextPosition = vec3(model * vec4(nextPosition, 1.f));
 
 		for (i = 1; i <= VERTICES_BETWEEN; ++i) 
 		{
@@ -47,7 +45,6 @@ void main(void)
 			nextPosition = startingPosition + hairDirection * segmentLength * i;
 			nextPosition += curlRadius * uDirection * cos(radians(angleStep) * i);
 			nextPosition += curlRadius * vDirection * sin(radians(angleStep) * i);
-			nextPosition = vec3(model * vec4(nextPosition, 1.f));
 			
 			outAttributes.tangent = normalize(nextPosition - outAttributes.fragPosition);
 
@@ -57,12 +54,12 @@ void main(void)
 	} 
 	else 
 	{
-		gl_Position = projection * view * model * vec4(gl_in[0].gl_Position.xyz, 1.f);
+		gl_Position = projection * view * vec4(gl_in[0].gl_Position.xyz, 1.f);
 		outAttributes.fragPosition = inAttributes[0].fragPosition;
 		outAttributes.tangent = normalize(inAttributes[1].fragPosition - inAttributes[0].fragPosition);
 		EmitVertex();
 
-		gl_Position = projection * view * model * vec4(gl_in[1].gl_Position.xyz, 1.f);
+		gl_Position = projection * view * vec4(gl_in[1].gl_Position.xyz, 1.f);
 		outAttributes.fragPosition = inAttributes[1].fragPosition;
 		outAttributes.tangent = normalize(inAttributes[1].fragPosition - inAttributes[0].fragPosition);
 		EmitVertex();

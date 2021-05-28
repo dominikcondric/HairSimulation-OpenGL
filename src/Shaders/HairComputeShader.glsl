@@ -36,6 +36,7 @@ struct Force {
 	float gravity;
 };
 
+uniform mat4 model;
 uniform float curlRadius = 0.05f;
 uniform float headRadius;
 uniform uint state;
@@ -43,7 +44,7 @@ uniform Force force;
 uniform HairData hairData;
 uniform float deltaTime;
 uniform float runningTime;
-uniform float velocityDampingCoefficient = 0.80;
+uniform float velocityDampingCoefficient = 0.90;
 uniform float frictionCoefficient = 0.0;
 
 vec3 followTheLeader(in vec3 leaderParticlePosition, in vec3 proposedParticlePosition, out vec3 positionCorrectionVector) 
@@ -198,8 +199,9 @@ void fillVolumes()
 
 void resolveBodyCollision(inout vec3 particlePosition) 
 {
-	if (length(particlePosition) < headRadius + 0.04f + curlRadius) 
-		particlePosition = normalize(particlePosition) * (headRadius + 0.04f + curlRadius);
+	const vec3 spherePosition = vec3(model[3]);
+	if (length(particlePosition - spherePosition) < headRadius + 0.04f + curlRadius) 
+		particlePosition = spherePosition + normalize(particlePosition - spherePosition) * (headRadius + 0.04f + curlRadius);
 }
 
 void moveParticles()
@@ -226,6 +228,8 @@ void moveParticles()
 		particleVelocities[i].z = velocities[particleOffset][2];
 	}
 
+	particlePositions[0] = vec3(model * vec4(particlePositions[0], 1.f));
+
 	vec3 forces, proposedPosition;
 	vec3 positionCorrectionVector[MAX_VERTICES_PER_STRAND];
 	for (uint i = 1; i < hairData.particlesPerStrand; ++i) 
@@ -245,17 +249,16 @@ void moveParticles()
 		particleVelocities[i] = correctFtlVelocity(particleVelocities[i], positionCorrectionVector[i + 1]);
 	}
 
-	for (uint i = 0; i < hairData.particlesPerStrand; ++i)
+	for (uint i = 1; i < hairData.particlesPerStrand; ++i)
 	{
-		positions[offset][0] = particlePositions[i].x;
-		positions[offset][1] = particlePositions[i].y;
-		positions[offset][2] = particlePositions[i].z;
+		const uint particleOffset = offset + i;
+		positions[particleOffset][0] = particlePositions[i].x;
+		positions[particleOffset][1] = particlePositions[i].y;
+		positions[particleOffset][2] = particlePositions[i].z;
 
-		velocities[offset][0] = particleVelocities[i].x;
-		velocities[offset][1] = particleVelocities[i].y;
-		velocities[offset][2] = particleVelocities[i].z;
-
-		++offset;
+		velocities[particleOffset][0] = particleVelocities[i].x;
+		velocities[particleOffset][1] = particleVelocities[i].y;
+		velocities[particleOffset][2] = particleVelocities[i].z;
 	}
 }
 

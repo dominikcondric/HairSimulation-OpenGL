@@ -24,6 +24,10 @@ Hair::~Hair()
 
 void Hair::constructModel()
 {
+	headModel = std::make_unique<Sphere>(50, 30, 0.5f);
+	headModel->scale(glm::vec3(2.f));
+	headModel->color = glm::vec3(0.85f, 0.48f, 0.2f);
+
 	std::vector<float> data;
 	data.reserve(maximumStrandCount * particlesPerStrand * 3);
 
@@ -145,6 +149,8 @@ void Hair::draw() const
 
 void Hair::applyPhysics(float deltaTime, float runningTime)
 {
+	headModel->translate(translationVector);
+
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, volumeDensities);
 	int* densities = (int*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
 	uint32_t volumeSize = 11 * 11 * 11;
@@ -173,6 +179,7 @@ void Hair::applyPhysics(float deltaTime, float runningTime)
 		settingsChanged = false;
 	}
 
+	computeShader.setMat4("model", transformMatrix);
 	computeShader.setUint("hairData.strandCount", strandCount);
 	computeShader.setFloat("deltaTime", deltaTime);
 	computeShader.setFloat("runningTime", runningTime);

@@ -33,7 +33,7 @@ public:
 
 protected:
 	GLuint programID = GL_NONE;
-	mutable std::unordered_map<std::string, GLint> uniformCache;
+	mutable std::unordered_map<std::string, std::pair<GLint, bool>> uniformCache;
 	GLint getUniformLocation(const std::string& name) const;
 	void linkProgram() const;
 	void compileAndAttachShader(const std::string& shaderFileName, GLuint& shaderID);

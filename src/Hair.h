@@ -1,6 +1,7 @@
 #pragma once
 #include "Entity.h"
 #include "ComputeShader.h"
+#include <memory>
 #include <vector>
 #include "Sphere.h"
 
@@ -15,7 +16,8 @@ public:
 	void decreaseStrandCount();
 	float getCurlRadius() const { return curlRadius; }
 	float getFrictionFactor() const { return frictionFactor; }
-
+	uint32_t getParticlesPerStrand() const { return particlesPerStrand; }
+	const Entity& getBody() const { return *headModel; }
 	
 	// Increases curl radius by 0.01 clamped in range [0, 0.05]
 	void increaseCurlRadius();
@@ -38,6 +40,7 @@ private:
 	GLuint volumeDensities = GL_NONE;
 	GLuint volumeVelocities = GL_NONE;
 
+	std::unique_ptr<Sphere> headModel;
 	std::vector<GLint> firsts;
 	std::vector<GLint> lasts;
 	uint32_t strandCount;
@@ -48,7 +51,7 @@ private:
 	float gravity = -9.81f;
 	bool settingsChanged = false;
 	const uint32_t maximumStrandCount = 30000;
-	float frictionFactor = 0.03f;
+	float frictionFactor = 0.07f;
 	void constructModel();
 	float strandWidth = 1.f;
 	float hairLength = 1.f;
