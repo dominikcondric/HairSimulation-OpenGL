@@ -32,17 +32,6 @@ Window::Window(uint32_t winWidth, uint32_t winHeight, const char* winName, int s
 
 	this->windowHandle = window;
 
-	keyStates.insert({ GLFW_KEY_ENTER, false });
-	keyStates.insert({ GLFW_KEY_0, false });
-	keyStates.insert({ GLFW_KEY_1, false });
-	keyStates.insert({ GLFW_KEY_2, false });
-	keyStates.insert({ GLFW_KEY_3, false });
-	keyStates.insert({ GLFW_KEY_4, false });
-	keyStates.insert({ GLFW_KEY_UP, false });
-	keyStates.insert({ GLFW_KEY_DOWN, false });
-	keyStates.insert({ GLFW_KEY_LEFT, false });
-	keyStates.insert({ GLFW_KEY_RIGHT, false });
-
 	onUpdate();
 }
 
@@ -94,7 +83,7 @@ bool Window::isKeyTapped(int key) const
 	}
 	else
 	{
-		std::cout << "Key is not added to the map" << std::endl;
+		keyStates.insert({ key, false });
 	}
 
 	return false;

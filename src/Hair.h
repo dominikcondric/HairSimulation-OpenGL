@@ -3,13 +3,16 @@
 #include "ComputeShader.h"
 #include <memory>
 #include <vector>
+#include <array>
 #include "Sphere.h"
+#include "Window.h"
 
 class Hair : public Entity {
 public:
 	Hair(uint32_t _strandCount = 5000U, float hairLength = 3.f, float hairCurliness = 0.0f);
 	~Hair();
 	void draw() const override;
+	void drawHead() const;
 	void applyPhysics(float deltaTime, float runningTime);
 	void setGravity(float strength);
 	void increaseStrandCount();
@@ -17,7 +20,7 @@ public:
 	float getCurlRadius() const { return curlRadius; }
 	float getFrictionFactor() const { return frictionFactor; }
 	uint32_t getParticlesPerStrand() const { return particlesPerStrand; }
-	const Entity& getBody() const { return *headModel; }
+	const std::array<std::unique_ptr<Sphere>, 7>& getEllipsoids() const { return ellipsoids; }
 	
 	// Increases curl radius by 0.01 clamped in range [0, 0.05]
 	void increaseCurlRadius();
@@ -40,7 +43,6 @@ private:
 	GLuint volumeDensities = GL_NONE;
 	GLuint volumeVelocities = GL_NONE;
 
-	std::unique_ptr<Sphere> headModel;
 	std::vector<GLint> firsts;
 	std::vector<GLint> lasts;
 	uint32_t strandCount;
@@ -55,4 +57,13 @@ private:
 	void constructModel();
 	float strandWidth = 1.f;
 	float hairLength = 1.f;
+
+	// Head variables
+	glm::vec3 headColor;
+	GLuint headVbo = GL_NONE;
+	GLuint headVao = GL_NONE;
+	GLuint headEbo = GL_NONE;
+	uint32_t indexCount = 0;
+	std::array<std::unique_ptr<Sphere>, 7> ellipsoids;
+	float ellipsoidsRadius = 0.5f;
 };

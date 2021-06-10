@@ -28,6 +28,7 @@ target_include_directories(HairSimulation
 	PRIVATE
 		${CMAKE_SOURCE_DIR}/Dependencies/ImageLoader/
 		${CMAKE_SOURCE_DIR}/Dependencies/glm/
+		${CMAKE_SOURCE_DIR}/Dependencies/OBJ-Loader/Source/
 		${CMAKE_BINARY_DIR}/src/
 )
 

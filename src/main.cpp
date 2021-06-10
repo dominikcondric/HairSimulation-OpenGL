@@ -10,6 +10,7 @@
 #include <iostream>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/string_cast.hpp>
+#include <array>
 
 template<typename T> using Unique = std::unique_ptr<T>;
 
@@ -39,7 +40,7 @@ int main(void)
 	Texture skyboxCubemap("room.png", GL_TEXTURE_CUBE_MAP, false);
 
 	// Basic hair
-	Unique<Hair> hair = std::make_unique<Hair>(7000, 2.f, 0.f);
+	Unique<Hair> hair = std::make_unique<Hair>(10000, 4.f, 0.f);
 	hair->color = glm::vec3(0.45f, 0.18f, 0.012f);
 
 	// Shaders setup
@@ -102,17 +103,29 @@ int main(void)
 		basicShader.setMat4("model", lightSphere->getTransformMatrix());
 		basicShader.setVec3("objectColor", lightSphere->color);
 		lightSphere->draw();
-		
-		const Entity& headModel = hair->getBody();
+
+		basicShader.setVec3("objectColor", glm::vec3(1.f, 0.f, 0.f));
+		if (window->isKeyPressed(GLFW_KEY_M)) {
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			for (const auto& s : hair->getEllipsoids()) {
+				basicShader.setMat4("model", hair->getTransformMatrix() * s->getTransformMatrix());
+				s->draw();
+			}
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		}
+
 		lightingShader.use();
 		lightingShader.setMat4("projection", cam.getProjection());
 		lightingShader.setMat4("view", cam.getView());
 		lightingShader.setVec3("eyePosition", cam.getPosition());
-		lightingShader.setMat4("model", headModel.getTransformMatrix());
+		lightingShader.setMat4("model", hair->getTransformMatrix());
 		lightingShader.setVec3("light.position", glm::vec3(glm::column(lightSphere->getTransformMatrix(), 3)));
-		headModel.updateColorsBasedOnMaterial(lightingShader, Entity::Material::PLASTIC);
-		headModel.draw();
+		glm::vec3 tempColor = hair->color;
+		hair->color = glm::vec3(1.f, 0.576f, 0.229f);
+		hair->updateColorsBasedOnMaterial(lightingShader, Entity::Material::PLASTIC);
+		hair->drawHead();
 
+		hair->color = tempColor;
 		hairShader.use();
 		hairShader.setMat4("projection", cam.getProjection());
 		hairShader.setMat4("view", cam.getView());
@@ -141,7 +154,7 @@ int main(void)
 		if (window->isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT))
 			cam.rotateCamera(window->getCursorOffset());
 
-		for (int i = 0; i < 5; ++i)
+		for (int i = 0; i <= 5; ++i)
 		{
 			if (window->isKeyTapped(i + GLFW_KEY_0))
 			{
@@ -202,20 +215,30 @@ int main(void)
 			case HAIR_ROTATION:
 				if (doPhysics)
 				{
-					constexpr float pi = glm::pi<float>();
-					if (window->isKeyPressed(GLFW_KEY_UP))
-						angleX = glm::clamp(angleX + deltaTime * 10.f, -pi / 2.f, pi / 2.f);
-					if (window->isKeyPressed(GLFW_KEY_DOWN))
-						angleX = glm::clamp(angleX - deltaTime * 10.f, -pi / 2.f, pi / 2.f);
-					if (window->isKeyPressed(GLFW_KEY_RIGHT))
-						angleY = glm::clamp(angleY + deltaTime * 10.f, -pi / 2.f, pi / 2.f);
-					if (window->isKeyPressed(GLFW_KEY_LEFT))
-						angleY = glm::clamp(angleY - deltaTime * 10.f, -pi / 2.f, pi / 2.f);
-				}
+					if (window->isKeyPressed(GLFW_KEY_UP) && angleX + deltaTime * 200.f < 90.f)
+					{
+						hair->rotate(deltaTime * 200.f, glm::vec3(1.f, 0.f, 0.f));
+						angleX += deltaTime * 200.f;
+					}
 
-				glm::quat result = glm::angleAxis(angleX, glm::vec3(1.f, 0.f, 0.f));
-				result = glm::rotate(result, angleY, glm::vec3(0.f, 1.f, 0.f));
-				hair->rotate(glm::degrees(2.f * glm::acos(result.w)), glm::vec3(result.x, result.y, result.z));
+					if (window->isKeyPressed(GLFW_KEY_DOWN) && angleX - deltaTime * 200.f > -90.f)
+					{
+						hair->rotate(-deltaTime * 200.f, glm::vec3(1.f, 0.f, 0.f));
+						angleX -= deltaTime * 200.f;
+					}
+
+					if (window->isKeyPressed(GLFW_KEY_RIGHT) && angleY + deltaTime * 200.f < 90.f)
+					{
+						hair->rotate(deltaTime * 200.f, glm::vec3(0.f, 1.f, 0.f));
+						angleY += deltaTime * 200.f;
+					}
+
+					if (window->isKeyPressed(GLFW_KEY_LEFT) && angleY - deltaTime * 200.f > -90.f)
+					{
+						hair->rotate(-deltaTime * 200.f, glm::vec3(0.f, 1.f, 0.f));
+						angleY -= deltaTime * 200.f;
+					}
+				}
 				break;
 
 			case HAIR_FRICTION:
@@ -239,7 +262,7 @@ int main(void)
 					hair->decreaseStrandCount();
 				break;
 		}
-		
+
 		if (window->isKeyTapped(GLFW_KEY_ENTER))
 			doPhysics = !doPhysics;
 

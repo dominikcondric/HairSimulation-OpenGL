@@ -4,6 +4,7 @@
 #define FILL_VOLUMES 1
 #define COLLISIONS 2
 
+#define ELLIPSOID_COUNT 7
 #define VOLUME_UPPER_LIMIT 10
 
 layout (local_size_x = 128) in;
@@ -36,9 +37,11 @@ struct Force {
 	float gravity;
 };
 
+
+uniform mat4 ellipsoids[ELLIPSOID_COUNT];
+uniform float ellipsoidRadius;
 uniform mat4 model;
 uniform float curlRadius = 0.05f;
-uniform float headRadius;
 uniform uint state;
 uniform Force force;
 uniform HairData hairData;
@@ -199,9 +202,15 @@ void fillVolumes()
 
 void resolveBodyCollision(inout vec3 particlePosition) 
 {
-	const vec3 spherePosition = vec3(model[3]);
-	if (length(particlePosition - spherePosition) < headRadius + 0.04f + curlRadius) 
-		particlePosition = spherePosition + normalize(particlePosition - spherePosition) * (headRadius + 0.04f + curlRadius);
+	for (uint i = 0; i < ELLIPSOID_COUNT; ++i)
+	{
+		vec3 transformedPosition = vec3(inverse(ellipsoids[i]) * vec4(particlePosition, 1.f));
+		if (length(transformedPosition) < ellipsoidRadius) 
+		{
+			transformedPosition = normalize(transformedPosition) * (ellipsoidRadius + curlRadius);
+			particlePosition = vec3(ellipsoids[i] * vec4(transformedPosition, 1.f));
+		}
+	}
 }
 
 void moveParticles()

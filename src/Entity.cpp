@@ -17,7 +17,7 @@ Entity::~Entity()
 
 void Entity::rotate(float angle, const glm::vec3& axis)
 {
-	rotationQuat = glm::angleAxis(glm::radians(angle), axis);
+	rotationQuat = glm::rotate(rotationQuat, glm::radians(angle), glm::normalize(axis));
 	transformMatrix = glm::scale(glm::translate(glm::mat4(1.f), translationVector) * glm::mat4_cast(rotationQuat), scaleVector);
 }
 

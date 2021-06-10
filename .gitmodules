@@ -4,3 +4,6 @@
 [submodule "Dependencies/GLFW"]
 	path = Dependencies/GLFW
 	url = https://github.com/glfw/glfw.git
+[submodule "Dependencies/OBJ-Loader"]
+	path = Dependencies/OBJ-Loader
+	url = https://github.com/Bly7/OBJ-Loader.git

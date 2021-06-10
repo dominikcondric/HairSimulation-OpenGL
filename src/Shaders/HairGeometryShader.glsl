@@ -1,5 +1,5 @@
 #version 460 core
-#define VERTICES_BETWEEN 11
+#define VERTICES_BETWEEN 10
 
 layout (lines) in;
 layout(line_strip, max_vertices = VERTICES_BETWEEN) out;
@@ -28,7 +28,7 @@ void main(void)
 		const vec3 hairDirection = normalize(endingPosition - startingPosition);
 		const vec3 uDirection = normalize(cross(vec3(hairDirection), vec3(0.f, 1.f, 0.f)));
 		const vec3 vDirection = normalize(cross(vec3(hairDirection), uDirection));
-		float angleStep = 360.f / (VERTICES_BETWEEN - 1);
+		float angleStep = 360.f / (VERTICES_BETWEEN-1);
 
 		uint i = 0;
 		vec3 nextPosition;
@@ -50,6 +50,11 @@ void main(void)
 
 			EmitVertex();
 		}
+
+		gl_Position = vec4(nextPosition, 1.f);
+		gl_Position = projection * view * gl_Position;
+		outAttributes.fragPosition = nextPosition;
+		EmitVertex();
 		EndPrimitive();
 	} 
 	else 
