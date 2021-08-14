@@ -15,6 +15,7 @@ Hair::Hair(uint32_t _strandCount, float hairLength, float hairCurlRadius) : stra
 	computeShader.setFloat("force.gravity", gravity);
 	computeShader.setVec4("force.wind", wind);
 	computeShader.setFloat("frictionCoefficient", frictionFactor);
+	computeShader.setFloat("velocityDampingCoefficient", velocityDampingCoefficient);
 	constructModel();
 }
 
@@ -123,7 +124,7 @@ void Hair::constructModel()
 	computeShader.setUint("hairData.particlesPerStrand", particlesPerStrand);
 	computeShader.setFloat("ellipsoidRadius", ellipsoidsRadius);
 	uint32_t counter = 0;
-	for (uint32_t i = 0; i < loader.LoadedVertices.size(); i += 5)
+	for (uint32_t i = 0; i < loader.LoadedVertices.size(); i += 10)
 	{
 		const auto& vertex = loader.LoadedVertices[i];
 		if ((vertex.Position.Y > -1.f && vertex.Position.Z < 0.f) || (vertex.Position.Y > -0.5f && vertex.Position.Z < 0.7f) || (vertex.Position.Y >= 0.5f && vertex.Position.Z < 1.7f))
@@ -133,7 +134,7 @@ void Hair::constructModel()
 			for (uint32_t j = 0; j < particlesPerStrand; ++j)
 			{
 				glm::vec3 particle(vertex.Position.X, vertex.Position.Y, vertex.Position.Z);
-				particle += normalize(particle) * (float)j * segmentLength;
+				particle += glm::normalize(particle) * (float)j * segmentLength;
 				data.push_back(particle.x);
 				data.push_back(particle.y);
 				data.push_back(particle.z);
@@ -141,29 +142,21 @@ void Hair::constructModel()
 		}
 	}
 
-	int strandsOnHair = counter;
+	const int strandsOnHair = counter;
 	for (; counter < maximumStrandCount; ++counter) 
 	{
-		int randomNumber = glm::linearRand(0, strandsOnHair) * particlesPerStrand * 3;
+		int randomNumber = glm::linearRand(0, strandsOnHair - 1) * particlesPerStrand * 3;
 		glm::vec3 firstCoords(data[randomNumber], data[randomNumber + 1], data[randomNumber + 2]);
 		randomNumber += particlesPerStrand * 3;
 		glm::vec3 secondCoords(data[randomNumber], data[randomNumber + 1], data[randomNumber + 2]);
 		glm::vec3 coordsBetween = secondCoords + (firstCoords - secondCoords) * 0.5f;
 		for (uint32_t j = 0; j < particlesPerStrand; ++j)
 		{
-			glm::vec3 particle = coordsBetween + normalize(coordsBetween) * (float)j * segmentLength;
+			glm::vec3 particle = coordsBetween + glm::normalize(coordsBetween) * (float)j * segmentLength;
 			data.push_back(particle.x);
 			data.push_back(particle.y);
 			data.push_back(particle.z);
 		}
-	}
-
-	firsts.reserve(maximumStrandCount);
-	lasts.reserve(maximumStrandCount);
-	for (uint32_t i = 0; i < maximumStrandCount - 1; ++i)
-	{
-		firsts.push_back(particlesPerStrand * i);
-		lasts.push_back(particlesPerStrand);
 	}
 
 	glBindVertexArray(vao);
@@ -171,8 +164,8 @@ void Hair::constructModel()
 	glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(float), data.data(), GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, GL_NONE);
 	glBindVertexArray(GL_NONE);
+	glBindBuffer(GL_ARRAY_BUFFER, GL_NONE);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vbo);
 
 	// Velocities
@@ -209,16 +202,30 @@ void Hair::setGravity(float strength)
 
 void Hair::increaseStrandCount()
 {
-	strandCount = glm::clamp<int>(strandCount + 10, 0, maximumStrandCount);
+	strandCount = glm::clamp<int>(strandCount + 100, 0, maximumStrandCount);
 	settingsChanged = true;
 	std::cout << "Strand count: " << strandCount << '\n';
 }
 
 void Hair::decreaseStrandCount()
 {
-	strandCount = glm::clamp<int>(strandCount - 10, 0, maximumStrandCount);
+	strandCount = glm::clamp<int>(strandCount - 100, 0, maximumStrandCount);
 	settingsChanged = true;
 	std::cout << "Strand count: " << strandCount << '\n';
+}
+
+void Hair::increaseVelocityDamping()
+{
+	velocityDampingCoefficient = glm::clamp(velocityDampingCoefficient + 0.01f, 0.f, 1.f);
+	settingsChanged = true;
+	std::cout << "Velocity damping coefficient: " << velocityDampingCoefficient << '\n';
+}
+
+void Hair::decreaseVelocityDamping()
+{
+	velocityDampingCoefficient = glm::clamp(velocityDampingCoefficient - 0.01f, 0.f, 1.f);
+	settingsChanged = true;
+	std::cout << "Velocity damping coefficient: " << velocityDampingCoefficient << '\n';
 }
 
 void Hair::increaseCurlRadius()
@@ -246,11 +253,13 @@ void Hair::setFrictionFactor(float friction)
 	std::cout << "Friction factor: " << frictionFactor << std::endl;
 }
 
-void Hair::draw() const 
+void Hair::draw() const
 {
-	glLineWidth(strandWidth);
 	glBindVertexArray(vao);
-	glMultiDrawArrays(GL_LINE_STRIP, firsts.data(), lasts.data(), strandCount);
+	for (uint32_t i = 0; i < strandCount; ++i)
+	{
+		glDrawArrays(GL_LINE_STRIP, i * particlesPerStrand, particlesPerStrand);
+	}
 	glBindVertexArray(GL_NONE);
 }
 
@@ -288,6 +297,7 @@ void Hair::applyPhysics(float deltaTime, float runningTime)
 		computeShader.setFloat("force.gravity", gravity);
 		computeShader.setVec4("force.wind", wind);
 		computeShader.setFloat("frictionCoefficient", frictionFactor);
+		computeShader.setFloat("velocityDampingCoefficient", velocityDampingCoefficient);
 		settingsChanged = false;
 	}
 

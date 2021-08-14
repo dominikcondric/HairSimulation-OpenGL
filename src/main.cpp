@@ -21,7 +21,6 @@ int main(void)
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.f);
-	glLineWidth(3.f);
 
 	PerspectiveCamera cam;
 	cam.setProjectionAspectRatio(1440.f / 810);
@@ -40,7 +39,7 @@ int main(void)
 	Texture skyboxCubemap("room.png", GL_TEXTURE_CUBE_MAP, false);
 
 	// Basic hair
-	Unique<Hair> hair = std::make_unique<Hair>(10000, 4.f, 0.f);
+	Unique<Hair> hair = std::make_unique<Hair>(2000, 4.f, 0.f);
 	hair->color = glm::vec3(0.45f, 0.18f, 0.012f);
 
 	// Shaders setup
@@ -72,7 +71,8 @@ int main(void)
 		HAIR_ROTATION,
 		HAIR_FRICTION,
 		HAIR_CURLINESS,
-		HAIR_STRAND_COUNT
+		HAIR_STRAND_COUNT,
+		VELOCITY_DAMPING
 	};
 
 	/*
@@ -154,7 +154,7 @@ int main(void)
 		if (window->isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT))
 			cam.rotateCamera(window->getCursorOffset());
 
-		for (int i = 0; i <= 5; ++i)
+		for (int i = 0; i <= 6; ++i)
 		{
 			if (window->isKeyTapped(i + GLFW_KEY_0))
 			{
@@ -179,6 +179,9 @@ int main(void)
 						break;
 					case 5:
 						std::cout << "Hair strand count" << std::endl;
+						break;
+					case 6:
+						std::cout << "Velocity damping" << std::endl;
 						break;
 				}
 				break;
@@ -260,6 +263,13 @@ int main(void)
 					hair->increaseStrandCount();
 				else if (window->isKeyTapped(GLFW_KEY_DOWN))
 					hair->decreaseStrandCount();
+				break;
+
+			case VELOCITY_DAMPING:
+				if (window->isKeyTapped(GLFW_KEY_UP))
+					hair->increaseVelocityDamping();
+				else if (window->isKeyTapped(GLFW_KEY_DOWN))
+					hair->decreaseVelocityDamping();
 				break;
 		}
 

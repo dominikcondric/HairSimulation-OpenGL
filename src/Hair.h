@@ -17,6 +17,8 @@ public:
 	void setGravity(float strength);
 	void increaseStrandCount();
 	void decreaseStrandCount();
+	void increaseVelocityDamping();
+	void decreaseVelocityDamping();
 	float getCurlRadius() const { return curlRadius; }
 	float getFrictionFactor() const { return frictionFactor; }
 	uint32_t getParticlesPerStrand() const { return particlesPerStrand; }
@@ -43,8 +45,6 @@ private:
 	GLuint volumeDensities = GL_NONE;
 	GLuint volumeVelocities = GL_NONE;
 
-	std::vector<GLint> firsts;
-	std::vector<GLint> lasts;
 	uint32_t strandCount;
 	float curlRadius = 0.0f;
 	ComputeShader computeShader;
@@ -52,11 +52,12 @@ private:
 	glm::vec4 wind{ 0.f, 0.f, 0.f, 0.2f };
 	float gravity = -9.81f;
 	bool settingsChanged = false;
-	const uint32_t maximumStrandCount = 30000;
-	float frictionFactor = 0.07f;
+	const uint32_t maximumStrandCount = 30000U;
+	float frictionFactor = 0.02f;
 	void constructModel();
-	float strandWidth = 1.f;
+	float strandWidth = 0.2f;
 	float hairLength = 1.f;
+	float velocityDampingCoefficient = 0.9f;
 
 	// Head variables
 	glm::vec3 headColor;

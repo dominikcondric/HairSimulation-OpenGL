@@ -12,7 +12,7 @@ uniform uint particlesPerStrand;
 
 void main() 
 {
-	if (gl_VertexID % particlesPerStrand ==  0)
+	if (gl_VertexID % particlesPerStrand == 0)
 		outAttributes.fragPosition = vec3(model * vec4(inPosition, 1.f));
 	else
 		outAttributes.fragPosition = inPosition;
